@@ -878,7 +878,232 @@ class TestProjectKV3Backend(unittest.TestCase):
         except Exception as e:
             print(f"❌ Teacher analytics student test failed: {str(e)}")
 
+class TestProjectKV3BackendFocusedIssues(unittest.TestCase):
+    """Test cases specifically for the issues identified in the test plan"""
+
+    def setUp(self):
+        """Set up test case - create student and teacher accounts"""
+        self.student_token = None
+        self.teacher_token = None
+        self.student_id = None
+        self.teacher_id = None
+        
+        # Register student and teacher
+        self.register_student()
+        self.register_teacher()
+
+    def register_student(self):
+        """Register a student for testing"""
+        print("\n🔍 Setting up student account...")
+        url = f"{API_URL}/auth/register"
+        payload = {
+            "email": f"student_focus_{uuid.uuid4()}@example.com",
+            "password": "SecurePass123!",
+            "name": "Arjun Kumar",
+            "user_type": UserType.STUDENT.value,
+            "grade_level": GradeLevel.GRADE_10.value
+        }
+        
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                self.student_token = data.get("access_token")
+                self.student_id = data.get("user", {}).get("id")
+                print(f"Registered student with ID: {self.student_id}")
+            else:
+                print(f"Failed to register student: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Error registering student: {str(e)}")
+
+    def register_teacher(self):
+        """Register a teacher for testing"""
+        print("\n🔍 Setting up teacher account...")
+        url = f"{API_URL}/auth/register"
+        payload = {
+            "email": f"teacher_focus_{uuid.uuid4()}@example.com",
+            "password": "SecurePass123!",
+            "name": "Neha Sharma",
+            "user_type": UserType.TEACHER.value,
+            "school_name": "Modern Public School"
+        }
+        
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                self.teacher_token = data.get("access_token")
+                self.teacher_id = data.get("user", {}).get("id")
+                print(f"Registered teacher with ID: {self.teacher_id}")
+            else:
+                print(f"Failed to register teacher: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Error registering teacher: {str(e)}")
+
+    def test_01_practice_test_system(self):
+        """Test practice test generation with correct request format"""
+        print("\n🔍 Testing Practice Test System (ISSUE #1)...")
+        
+        if not self.student_token:
+            self.skipTest("Student token not available")
+        
+        url = f"{API_URL}/practice/generate"
+        headers = {"Authorization": f"Bearer {self.student_token}"}
+        
+        # Test with different payload formats to identify the correct one
+        payloads = [
+            # Original payload from existing test
+            {
+                "subject": Subject.MATH.value,
+                "topics": ["Algebra"],
+                "difficulty": DifficultyLevel.MEDIUM.value,
+                "question_count": 3
+            },
+            # Alternative payload with string topics
+            {
+                "subject": Subject.MATH.value,
+                "topics": "Algebra",
+                "difficulty": DifficultyLevel.MEDIUM.value,
+                "question_count": 3
+            },
+            # Alternative payload with single topic as list
+            {
+                "subject": Subject.MATH.value,
+                "topics": ["Algebra"],
+                "difficulty": DifficultyLevel.MEDIUM.value,
+                "question_count": 3
+            },
+            # Alternative payload with different field names
+            {
+                "subject": Subject.MATH.value,
+                "topic": ["Algebra"],
+                "difficulty_level": DifficultyLevel.MEDIUM.value,
+                "num_questions": 3
+            }
+        ]
+        
+        success = False
+        working_payload = None
+        error_details = []
+        
+        for i, payload in enumerate(payloads):
+            try:
+                print(f"Trying payload format #{i+1}: {json.dumps(payload)}")
+                response = requests.post(url, json=payload, headers=headers)
+                print(f"Response: {response.status_code}")
+                
+                if response.status_code == 200:
+                    success = True
+                    working_payload = payload
+                    data = response.json()
+                    print(f"Success! Generated {len(data.get('questions', []))} practice questions")
+                    break
+                else:
+                    error_details.append(f"Payload #{i+1}: Status {response.status_code}, Response: {response.text}")
+            except Exception as e:
+                error_details.append(f"Payload #{i+1}: Exception: {str(e)}")
+        
+        if success:
+            print(f"✅ Practice test generation works with payload format: {json.dumps(working_payload)}")
+        else:
+            print("❌ All practice test generation attempts failed")
+            for error in error_details:
+                print(f"  - {error}")
+            
+        # Assert based on success flag rather than expecting success
+        # This allows us to report the issue properly
+        self.assertEqual(success, True, "Practice test generation should work with at least one payload format")
+
+    def test_02_teacher_dashboard_empty_classes(self):
+        """Test teacher dashboard when teacher has no classes"""
+        print("\n🔍 Testing Teacher Dashboard with No Classes (ISSUE #2)...")
+        
+        if not self.teacher_token:
+            self.skipTest("Teacher token not available")
+        
+        url = f"{API_URL}/teacher/dashboard"
+        headers = {"Authorization": f"Bearer {self.teacher_token}"}
+        
+        try:
+            # This is a newly registered teacher with no classes
+            response = requests.get(url, headers=headers)
+            print(f"Teacher Dashboard Response: {response.status_code}")
+            
+            # We expect this to work even with no classes
+            self.assertEqual(response.status_code, 200, "Teacher dashboard should work with no classes")
+            
+            if response.status_code == 200:
+                data = response.json()
+                print("✅ Teacher dashboard works with no classes")
+                
+                # Verify the structure
+                self.assertIn("profile", data, "Profile should be present")
+                self.assertIn("classes", data, "Classes array should be present (even if empty)")
+                self.assertIn("stats", data, "Stats should be present")
+                
+                # Verify classes is an empty array
+                classes = data.get("classes", None)
+                self.assertIsInstance(classes, list, "Classes should be a list")
+                self.assertEqual(len(classes), 0, "Classes should be empty")
+                
+                # Verify stats has appropriate values for no classes
+                stats = data.get("stats", {})
+                self.assertEqual(stats.get("total_classes", None), 0, "Total classes should be 0")
+                self.assertEqual(stats.get("total_students", None), 0, "Total students should be 0")
+            else:
+                print(f"❌ Teacher dashboard fails with no classes: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"❌ Teacher dashboard test failed: {str(e)}")
+            self.fail(f"Teacher dashboard test failed: {str(e)}")
+
+    def test_03_jwt_validation_missing_token(self):
+        """Test JWT validation for missing tokens"""
+        print("\n🔍 Testing JWT Validation for Missing Tokens (ISSUE #3)...")
+        
+        # Test with missing token
+        url = f"{API_URL}/student/profile"
+        
+        try:
+            # Make request with no Authorization header
+            response = requests.get(url)
+            print(f"Missing Token Response: {response.status_code}")
+            
+            # Check if it returns 401 (expected) or 403 (current behavior)
+            if response.status_code == 401:
+                print("✅ Missing token correctly returns 401 Unauthorized")
+                self.assertEqual(response.status_code, 401, "Missing token should return 401 Unauthorized")
+            else:
+                print(f"❌ Missing token returns {response.status_code} instead of 401 Unauthorized")
+                # We'll assert this to document the issue, not because we expect it to pass
+                self.assertEqual(response.status_code, 401, 
+                                f"Missing token returns {response.status_code} instead of 401 Unauthorized")
+            
+            # Check response headers
+            headers = response.headers
+            self.assertIn("WWW-Authenticate", headers, 
+                         "Response should include WWW-Authenticate header for 401 responses")
+            
+            # Check response body
+            try:
+                data = response.json()
+                self.assertIn("detail", data, "Response should include error detail")
+                print(f"Error detail: {data.get('detail', '')}")
+            except:
+                print("Response is not valid JSON")
+        except Exception as e:
+            print(f"❌ JWT validation test failed: {str(e)}")
+            self.fail(f"JWT validation test failed: {str(e)}")
+
 if __name__ == "__main__":
     # Run the V3 tests
     print("\n==== TESTING PROJECT K V3 BACKEND ====\n")
-    unittest.main(argv=['first-arg-is-ignored'], exit=False)
+    
+    # First run the focused tests for the issues in the test plan
+    print("\n==== RUNNING FOCUSED TESTS FOR IDENTIFIED ISSUES ====\n")
+    focused_suite = unittest.TestLoader().loadTestsFromTestCase(TestProjectKV3BackendFocusedIssues)
+    focused_result = unittest.TextTestRunner().run(focused_suite)
+    
+    # Then run the full test suite
+    print("\n==== RUNNING FULL TEST SUITE ====\n")
+    full_suite = unittest.TestLoader().loadTestsFromTestCase(TestProjectKV3Backend)
+    unittest.TextTestRunner().run(full_suite)
