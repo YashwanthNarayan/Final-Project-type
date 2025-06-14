@@ -2286,9 +2286,23 @@ const TeacherDashboard = ({ teacher, onLogout }) => {
     setCurrentView(view);
   };
 
+  const createClass = async (e) => {
+    e.preventDefault();
+    try {
+      await axios.post(`${API_BASE}/api/teacher/classes`, newClass);
+      setShowCreateClass(false);
+      setNewClass({ class_name: '', subject: 'math', grade_level: '9th', description: '' });
+      loadTeacherClasses();
+    } catch (error) {
+      console.error('Error creating class:', error);
+    }
+  };
+
   if (currentView === 'analytics') {
     return <TeacherAnalyticsDashboard teacher={teacher} onNavigate={handleNavigate} />;
   }
+
+  return (
 
   const createClass = async (e) => {
     e.preventDefault();
