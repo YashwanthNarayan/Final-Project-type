@@ -743,6 +743,14 @@ async def join_class(request: JoinClassRequest, token_data: dict = Depends(verif
             {"user_id": student_id},
             {"$push": {"joined_classes": classroom['class_id']}}
         )
+        
+        # Create notification for successful class joining
+        await create_notification(
+            recipient_id=student_id,
+            title=f"Welcome to {classroom['class_name']}! 🏫",
+            message=f"You've successfully joined the {classroom['subject'].title()} class. Start collaborating with your teacher and classmates!",
+            notification_type="system"
+        )
     
     return {"message": "Successfully joined class", "class": ClassRoom(**classroom)}
 
