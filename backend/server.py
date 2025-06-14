@@ -290,6 +290,51 @@ async def create_notification(recipient_id: str, title: str, message: str, notif
     await db.notifications.insert_one(notification.dict())
     return notification
 
+async def award_xp(student_id: str, xp_amount: int, reason: str = ""):
+    """Helper function to award XP and check for achievements"""
+    # Get current profile
+    profile = await db.student_profiles.find_one({"user_id": student_id})
+    if not profile:
+        return
+    
+    current_xp = profile.get("total_xp", 0)
+    new_xp = current_xp + xp_amount
+    
+    # Calculate levels (every 100 XP = 1 level)
+    current_level = (current_xp // 100) + 1
+    new_level = (new_xp // 100) + 1
+    
+    # Update profile
+    await db.student_profiles.update_one(
+        {"user_id": student_id},
+        {
+            "$inc": {"total_xp": xp_amount},
+            "$set": {"level": new_level, "last_active": datetime.utcnow()}
+        }
+    )
+    
+    # Check for level up
+    if new_level > current_level:
+        await create_notification(
+            recipient_id=student_id,
+            title=f"Level Up! 🚀 You're now Level {new_level}",
+            message=f"Congratulations! You've reached Level {new_level} with {new_xp} XP. Keep up the great work!",
+            notification_type="achievement"
+        )
+    
+    # Check for XP milestones
+    milestones = [50, 100, 250, 500, 1000]
+    for milestone in milestones:
+        if current_xp < milestone <= new_xp:
+            await create_notification(
+                recipient_id=student_id,
+                title=f"XP Milestone! 🏆 {milestone} XP Reached",
+                message=f"Amazing! You've earned {milestone} XP. You're becoming a learning champion!",
+                notification_type="achievement"
+            )
+    
+    return new_xp, new_level
+
 # AI Bot Classes
 class CentralBrainBot:
     def __init__(self):
