@@ -1179,6 +1179,157 @@ const CalendarComponent = ({ student, onNavigate }) => {
   );
 };
 
+// Notifications Component
+const NotificationsComponent = ({ student, onNavigate }) => {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
+  const loadNotifications = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/notifications`);
+      setNotifications(response.data);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsRead = async (notificationId) => {
+    try {
+      await axios.put(`${API_BASE}/api/notifications/${notificationId}/read`);
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.id === notificationId ? { ...notif, is_read: true } : notif
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'system': return '🔔';
+      case 'teacher_message': return '👩‍🏫';
+      case 'reminder': return '⏰';
+      case 'achievement': return '🏆';
+      default: return '📢';
+    }
+  };
+
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    
+    if (diffInHours < 1) {
+      return 'Just now';
+    } else if (diffInHours < 24) {
+      return `${Math.floor(diffInHours)}h ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => onNavigate('student-dashboard')}
+                className="text-indigo-600 hover:text-indigo-800 text-2xl"
+              >
+                ←
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">Notifications</h1>
+                <p className="text-sm text-gray-600">Stay updated with your learning journey</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm font-medium text-gray-900">{student?.name}</div>
+              <div className="text-xs text-gray-600">Grade {student?.grade_level}</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-lg text-gray-600">Loading notifications...</div>
+          </div>
+        ) : notifications.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="text-6xl mb-4">📬</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">No notifications yet!</h2>
+            <p className="text-gray-600 mb-6">
+              We'll notify you about important updates, achievements, and messages from your teachers.
+            </p>
+            <button
+              onClick={() => onNavigate('student-dashboard')}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="bg-white rounded-xl p-6 shadow-md">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                All Notifications ({notifications.filter(n => !n.is_read).length} unread)
+              </h2>
+            </div>
+            
+            {notifications.map((notification) => (
+              <div
+                key={notification.id}
+                className={`bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 cursor-pointer ${
+                  !notification.is_read ? 'border-l-4 border-indigo-500 bg-gradient-to-r from-indigo-50 to-white' : ''
+                }`}
+                onClick={() => !notification.is_read && markAsRead(notification.id)}
+              >
+                <div className="flex items-start space-x-4">
+                  <div className="text-3xl">{getNotificationIcon(notification.type)}</div>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start mb-2">
+                      <h3 className={`font-semibold ${!notification.is_read ? 'text-gray-900' : 'text-gray-700'}`}>
+                        {notification.title}
+                      </h3>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-gray-500">{formatTime(notification.created_at)}</span>
+                        {!notification.is_read && (
+                          <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                        )}
+                      </div>
+                    </div>
+                    <p className={`${!notification.is_read ? 'text-gray-800' : 'text-gray-600'}`}>
+                      {notification.message}
+                    </p>
+                    <div className="mt-2">
+                      <span className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full capitalize">
+                        {notification.type.replace('_', ' ')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Student Dashboard Component
 const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
   const subjects = ['math', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography'];
