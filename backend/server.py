@@ -453,10 +453,25 @@ class PracticeTestBot:
             # Create PracticeQuestion objects
             questions = []
             for q_data in questions_data:
+                # Normalize question type to lowercase to handle AI variations
+                q_type = q_data.get('question_type', 'mcq').lower()
+                
+                # Map common variations
+                if q_type in ['mcq', 'multiple_choice', 'multiple choice']:
+                    q_type = 'mcq'
+                elif q_type in ['short_answer', 'short answer', 'short']:
+                    q_type = 'short_answer'
+                elif q_type in ['numerical', 'numeric', 'number']:
+                    q_type = 'numerical'
+                elif q_type in ['long_answer', 'long answer', 'long']:
+                    q_type = 'long_answer'
+                else:
+                    q_type = 'mcq'  # Default fallback
+                
                 question = PracticeQuestion(
                     subject=subject,
                     topics=topics,
-                    question_type=QuestionType(q_data.get('question_type', 'mcq')),
+                    question_type=QuestionType(q_type),
                     difficulty=difficulty,
                     question_text=q_data['question_text'],
                     options=q_data.get('options', []),
