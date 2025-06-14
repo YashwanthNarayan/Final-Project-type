@@ -572,6 +572,14 @@ async def register_user(user_data: UserCreate):
             grade_level=user_data.grade_level
         )
         await db.student_profiles.insert_one(student_profile.dict())
+        
+        # Create welcome notification for student
+        await create_notification(
+            recipient_id=user.id,
+            title="Welcome to Project K! 🎓",
+            message=f"Hi {user_data.name}! Start your learning journey with our AI tutors. Ask questions, take practice tests, and track your progress.",
+            notification_type="system"
+        )
     else:
         teacher_profile = TeacherProfile(
             user_id=user.id,
@@ -581,6 +589,14 @@ async def register_user(user_data: UserCreate):
             school_name=user_data.school_name or "Unknown School"
         )
         await db.teacher_profiles.insert_one(teacher_profile.dict())
+        
+        # Create welcome notification for teacher
+        await create_notification(
+            recipient_id=user.id,
+            title="Welcome to Project K! 👩‍🏫",
+            message=f"Hi {user_data.name}! Create classes, manage students, and track their learning progress with our comprehensive teacher tools.",
+            notification_type="system"
+        )
     
     # Create access token
     access_token = create_access_token({"sub": user.id, "email": user.email, "user_type": user_data.user_type})
