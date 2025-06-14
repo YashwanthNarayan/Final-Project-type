@@ -1112,6 +1112,311 @@ async def get_teacher_dashboard(token_data: dict = Depends(verify_token)):
         "recent_activity": [ChatMessage(**msg) for msg in recent_activity]
     }
 
+# Enhanced Teacher Analytics Routes
+@api_router.get("/teacher/analytics/class/{class_id}")
+async def get_class_analytics(class_id: str, token_data: dict = Depends(verify_token)):
+    """Get comprehensive analytics for a specific class"""
+    if token_data.get('user_type') != 'teacher':
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    
+    # Verify teacher owns this class
+    classroom = await db.classrooms.find_one({"class_id": class_id, "teacher_id": token_data['sub']})
+    if not classroom:
+        raise HTTPException(status_code=404, detail="Class not found or access denied")
+    
+    student_ids = classroom.get('students', [])
+    if not student_ids:
+        return {
+            "class_info": ClassRoom(**classroom),
+            "student_count": 0,
+            "analytics": {}
+        }
+    
+    # Get student profiles
+    student_profiles = await db.student_profiles.find({"user_id": {"$in": student_ids}}).to_list(100)
+    
+    # Get chat analytics
+    chat_stats = await db.chat_messages.aggregate([
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$group": {
+            "_id": "$student_id",
+            "total_messages": {"$sum": 1},
+            "subjects": {"$addToSet": "$subject"},
+            "last_activity": {"$max": "$timestamp"}
+        }}
+    ]).to_list(100)
+    
+    # Get practice test analytics
+    practice_stats = await db.practice_attempts.aggregate([
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$group": {
+            "_id": "$student_id",
+            "total_tests": {"$sum": 1},
+            "avg_score": {"$avg": "$score"},
+            "total_time": {"$sum": "$time_taken"}
+        }}
+    ]).to_list(100)
+    
+    # Get mindfulness analytics
+    mindfulness_stats = await db.mindfulness_activities.aggregate([
+        {"$match": {"student_id": {"$in": student_ids}}},
+        {"$group": {
+            "_id": "$student_id",
+            "total_sessions": {"$sum": 1},
+            "total_minutes": {"$sum": "$duration"},
+            "avg_mood_improvement": {"$avg": {"$subtract": ["$mood_after", "$mood_before"]}}
+        }}
+    ]).to_list(100)
+    
+    # Combine analytics
+    student_analytics = {}
+    for profile in student_profiles:
+        student_id = profile['user_id']
+        
+        # Find corresponding stats
+        chat_data = next((item for item in chat_stats if item['_id'] == student_id), {})
+        practice_data = next((item for item in practice_stats if item['_id'] == student_id), {})
+        mindfulness_data = next((item for item in mindfulness_stats if item['_id'] == student_id), {})
+        
+        student_analytics[student_id] = {
+            "profile": StudentProfile(**profile),
+            "engagement": {
+                "total_messages": chat_data.get('total_messages', 0),
+                "subjects_studied": len(chat_data.get('subjects', [])),
+                "last_activity": chat_data.get('last_activity')
+            },
+            "performance": {
+                "total_tests": practice_data.get('total_tests', 0),
+                "average_score": round(practice_data.get('avg_score', 0), 1),
+                "total_study_time": practice_data.get('total_time', 0)
+            },
+            "wellness": {
+                "mindfulness_sessions": mindfulness_data.get('total_sessions', 0),
+                "mindfulness_minutes": mindfulness_data.get('total_minutes', 0),
+                "mood_improvement": round(mindfulness_data.get('avg_mood_improvement', 0), 1)
+            }
+        }
+    
+    # Calculate class-wide metrics
+    class_metrics = {
+        "average_xp": sum(p.get('total_xp', 0) for p in student_profiles) / len(student_profiles) if student_profiles else 0,
+        "average_level": sum(p.get('level', 1) for p in student_profiles) / len(student_profiles) if student_profiles else 1,
+        "total_messages": sum(s.get('total_messages', 0) for s in chat_stats),
+        "total_tests": sum(s.get('total_tests', 0) for s in practice_stats),
+        "average_score": sum(s.get('avg_score', 0) for s in practice_stats) / len(practice_stats) if practice_stats else 0,
+        "active_students": len([s for s in chat_stats if s.get('total_messages', 0) > 0])
+    }
+    
+    return {
+        "class_info": ClassRoom(**classroom),
+        "student_count": len(student_ids),
+        "class_metrics": class_metrics,
+        "student_analytics": student_analytics
+    }
+
+@api_router.get("/teacher/analytics/student/{student_id}")
+async def get_student_detailed_analytics(student_id: str, token_data: dict = Depends(verify_token)):
+    """Get detailed analytics for a specific student"""
+    if token_data.get('user_type') != 'teacher':
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    
+    # Verify teacher has access to this student
+    teacher_classes = await db.classrooms.find({"teacher_id": token_data['sub']}).to_list(100)
+    student_accessible = False
+    for cls in teacher_classes:
+        if student_id in cls.get('students', []):
+            student_accessible = True
+            break
+    
+    if not student_accessible:
+        raise HTTPException(status_code=403, detail="Student not in your classes")
+    
+    # Get student profile
+    student_profile = await db.student_profiles.find_one({"user_id": student_id})
+    if not student_profile:
+        raise HTTPException(status_code=404, detail="Student not found")
+    
+    # Get detailed chat history with subject breakdown
+    chat_history = await db.chat_messages.find(
+        {"student_id": student_id}
+    ).sort("timestamp", 1).to_list(1000)
+    
+    # Get practice test history
+    practice_history = await db.practice_attempts.find(
+        {"student_id": student_id}
+    ).sort("completed_at", 1).to_list(100)
+    
+    # Get mindfulness history
+    mindfulness_history = await db.mindfulness_activities.find(
+        {"student_id": student_id}
+    ).sort("completed_at", 1).to_list(100)
+    
+    # Get calendar events
+    calendar_events = await db.calendar_events.find(
+        {"student_id": student_id}
+    ).sort("start_time", 1).to_list(100)
+    
+    # Calculate subject-wise analytics
+    subject_analytics = {}
+    for subject in Subject:
+        subject_messages = [msg for msg in chat_history if msg.get('subject') == subject.value]
+        subject_tests = []
+        
+        # Get practice questions for this subject from practice attempts
+        for attempt in practice_history:
+            # Get questions from this attempt
+            attempt_questions = await db.practice_questions.find(
+                {"id": {"$in": attempt.get('questions', [])}, "subject": subject.value}
+            ).to_list(100)
+            if attempt_questions:
+                subject_tests.append({
+                    "score": attempt.get('score', 0),
+                    "completed_at": attempt.get('completed_at'),
+                    "question_count": len(attempt_questions)
+                })
+        
+        subject_analytics[subject.value] = {
+            "total_messages": len(subject_messages),
+            "total_tests": len(subject_tests),
+            "average_score": sum(t['score'] for t in subject_tests) / len(subject_tests) if subject_tests else 0,
+            "last_activity": max([msg.get('timestamp') for msg in subject_messages], default=None),
+            "progress_trend": [msg.get('timestamp') for msg in subject_messages[-10:]] if subject_messages else []
+        }
+    
+    # Calculate time-based analytics (daily activity)
+    from collections import defaultdict
+    daily_activity = defaultdict(int)
+    for msg in chat_history:
+        date = msg.get('timestamp', datetime.utcnow()).date()
+        daily_activity[date.isoformat()] += 1
+    
+    # Performance trends over time
+    performance_trend = []
+    for attempt in practice_history[-20:]:  # Last 20 attempts
+        performance_trend.append({
+            "date": attempt.get('completed_at'),
+            "score": attempt.get('score'),
+            "time_taken": attempt.get('time_taken')
+        })
+    
+    return {
+        "student_profile": StudentProfile(**student_profile),
+        "subject_analytics": subject_analytics,
+        "overall_stats": {
+            "total_messages": len(chat_history),
+            "total_tests": len(practice_history),
+            "total_mindfulness_sessions": len(mindfulness_history),
+            "total_events": len(calendar_events),
+            "average_test_score": sum(a.get('score', 0) for a in practice_history) / len(practice_history) if practice_history else 0,
+            "study_streak": student_profile.get('streak_days', 0),
+            "total_xp": student_profile.get('total_xp', 0),
+            "current_level": student_profile.get('level', 1)
+        },
+        "activity_timeline": {
+            "daily_activity": dict(daily_activity),
+            "performance_trend": performance_trend,
+            "recent_activity": chat_history[-10:] if chat_history else []
+        },
+        "wellness_data": {
+            "mindfulness_sessions": len(mindfulness_history),
+            "total_mindfulness_minutes": sum(s.get('duration', 0) for s in mindfulness_history),
+            "mood_trends": [
+                {
+                    "date": s.get('completed_at'),
+                    "mood_before": s.get('mood_before'),
+                    "mood_after": s.get('mood_after'),
+                    "improvement": s.get('mood_after', 5) - s.get('mood_before', 5)
+                } for s in mindfulness_history
+            ]
+        }
+    }
+
+@api_router.get("/teacher/analytics/overview")
+async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token)):
+    """Get teacher's overall analytics across all classes"""
+    if token_data.get('user_type') != 'teacher':
+        raise HTTPException(status_code=403, detail="Teacher access required")
+    
+    # Get all teacher's classes
+    classes = await db.classrooms.find({"teacher_id": token_data['sub']}).to_list(100)
+    
+    # Get all students across all classes
+    all_student_ids = []
+    class_summary = []
+    
+    for cls in classes:
+        student_ids = cls.get('students', [])
+        all_student_ids.extend(student_ids)
+        
+        # Get basic stats for each class
+        student_profiles = await db.student_profiles.find({"user_id": {"$in": student_ids}}).to_list(100)
+        avg_xp = sum(p.get('total_xp', 0) for p in student_profiles) / len(student_profiles) if student_profiles else 0
+        
+        # Get recent activity count
+        recent_activity_count = await db.chat_messages.count_documents({
+            "student_id": {"$in": student_ids},
+            "timestamp": {"$gte": datetime.utcnow() - timedelta(days=7)}
+        })
+        
+        class_summary.append({
+            "class_info": ClassRoom(**cls),
+            "student_count": len(student_ids),
+            "average_xp": round(avg_xp, 1),
+            "weekly_activity": recent_activity_count
+        })
+    
+    unique_student_ids = list(set(all_student_ids))
+    
+    # Overall metrics
+    total_messages = await db.chat_messages.count_documents({"student_id": {"$in": unique_student_ids}})
+    total_tests = await db.practice_attempts.count_documents({"student_id": {"$in": unique_student_ids}})
+    
+    # Get average scores
+    avg_score_pipeline = await db.practice_attempts.aggregate([
+        {"$match": {"student_id": {"$in": unique_student_ids}}},
+        {"$group": {"_id": None, "avg_score": {"$avg": "$score"}}}
+    ]).to_list(1)
+    avg_score = avg_score_pipeline[0].get('avg_score', 0) if avg_score_pipeline else 0
+    
+    # Get subject distribution
+    subject_distribution = await db.chat_messages.aggregate([
+        {"$match": {"student_id": {"$in": unique_student_ids}}},
+        {"$group": {"_id": "$subject", "count": {"$sum": 1}}}
+    ]).to_list(10)
+    
+    # Get weekly activity trend
+    weekly_activity = await db.chat_messages.aggregate([
+        {
+            "$match": {
+                "student_id": {"$in": unique_student_ids},
+                "timestamp": {"$gte": datetime.utcnow() - timedelta(days=30)}
+            }
+        },
+        {
+            "$group": {
+                "_id": {
+                    "week": {"$week": "$timestamp"},
+                    "year": {"$year": "$timestamp"}
+                },
+                "count": {"$sum": 1}
+            }
+        },
+        {"$sort": {"_id.year": 1, "_id.week": 1}}
+    ]).to_list(10)
+    
+    return {
+        "overview_metrics": {
+            "total_classes": len(classes),
+            "total_students": len(unique_student_ids),
+            "total_messages": total_messages,
+            "total_tests": total_tests,
+            "average_score": round(avg_score, 1)
+        },
+        "class_summary": class_summary,
+        "subject_distribution": [{"subject": item["_id"], "count": item["count"]} for item in subject_distribution],
+        "weekly_activity_trend": [{"week": f"{item['_id']['year']}-W{item['_id']['week']}", "count": item["count"]} for item in weekly_activity]
+    }
+
 # Health check routes
 @api_router.get("/")
 async def root():
