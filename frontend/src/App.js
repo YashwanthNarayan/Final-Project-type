@@ -2341,12 +2341,20 @@ const TeacherDashboard = ({ teacher, onLogout }) => {
               <h2 className="text-3xl font-bold text-gray-900">Welcome, {teacher?.name}! 👩‍🏫</h2>
               <p className="text-gray-600 mt-1">Manage your classes and track student progress</p>
             </div>
-            <button
-              onClick={() => setShowCreateClass(true)}
-              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
-            >
-              + Create Class
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setCurrentView('analytics')}
+                className="bg-gradient-to-r from-purple-500 to-pink-600 text-white px-6 py-3 rounded-lg hover:from-purple-600 hover:to-pink-700 transition-all"
+              >
+                📊 Analytics
+              </button>
+              <button
+                onClick={() => setShowCreateClass(true)}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+              >
+                + Create Class
+              </button>
+            </div>
           </div>
         </div>
 
