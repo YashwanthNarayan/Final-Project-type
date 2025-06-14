@@ -975,10 +975,7 @@ async def start_mindfulness_session(session_data: Dict[str, Any], token_data: di
     await db.mindfulness_activities.insert_one(session.dict())
     
     # Award XP for mindfulness activity
-    await db.student_profiles.update_one(
-        {"user_id": token_data['sub']},
-        {"$inc": {"total_xp": 10}}  # 10 XP for mindfulness
-    )
+    await award_xp(token_data['sub'], 10, f"Completed {session_data['activity_type']} mindfulness session")
     
     return session
 
