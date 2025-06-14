@@ -877,14 +877,7 @@ async def send_chat_message(message_data: Dict[str, Any], token_data: dict = Dep
         
         # Award XP for engagement
         if student_profile:
-            xp_earned = 5  # Base XP for asking questions
-            await db.student_profiles.update_one(
-                {"user_id": token_data['sub']},
-                {
-                    "$inc": {"total_xp": xp_earned},
-                    "$set": {"last_active": datetime.utcnow()}
-                }
-            )
+            await award_xp(token_data['sub'], 5, "Asked a question to AI tutor")
         
         return message_obj
         
