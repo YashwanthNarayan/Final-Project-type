@@ -948,10 +948,7 @@ async def submit_practice_test(test_data: Dict[str, Any], token_data: dict = Dep
         
         # Award XP based on score
         xp_earned = int(score / 10) * 5  # 5 XP per 10% score
-        await db.student_profiles.update_one(
-            {"user_id": token_data['sub']},
-            {"$inc": {"total_xp": xp_earned}}
-        )
+        await award_xp(token_data['sub'], xp_earned, f"Completed practice test with {score:.1f}% score")
         
         return {
             "score": score,
