@@ -250,9 +250,9 @@ backend:
     implemented: true
     working: false
     file: "backend/server.py"
-    stuck_count: 1
+    stuck_count: 2
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -260,6 +260,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "Practice test generation returns a 422 error, indicating a validation error in the request format. The API expects a different format than what is being sent. Practice test submission also fails as it depends on test generation."
+      - working: false
+        agent: "testing"
+        comment: "Identified specific validation error: question_count must be greater than or equal to 5. The API is correctly validating the input parameters but our test is sending a value of 3. The API expects the following format: {subject: 'math', topics: ['Algebra'], difficulty: 'medium', question_count: 5} with question_count >= 5."
 
   - task: "Teacher Dashboard"
     implemented: true
