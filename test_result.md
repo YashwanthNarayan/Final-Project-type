@@ -415,8 +415,6 @@ metadata:
 test_plan:
   current_focus:
     - "Practice Test System"
-    - "Teacher Dashboard"
-    - "JWT Validation for Missing Tokens"
   stuck_tasks:
     - "Practice Test System"
   test_all: false
