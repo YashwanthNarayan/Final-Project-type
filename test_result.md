@@ -284,11 +284,11 @@ backend:
 
   - task: "JWT Validation for Missing Tokens"
     implemented: true
-    working: false
+    working: true
     file: "backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "low"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: "NA"
         agent: "main"
@@ -296,6 +296,9 @@ backend:
       - working: false
         agent: "testing"
         comment: "When a request is made without a token, the API returns a 403 Forbidden error instead of the expected 401 Unauthorized error. This is a minor issue but should be fixed for consistency."
+      - working: true
+        agent: "testing"
+        comment: "The issue has been fixed. When a request is made without a token, the API now correctly returns a 401 Unauthorized error with the message 'Missing authentication credentials'."
 
 frontend:
   - task: "V3 Authentication Portal"
