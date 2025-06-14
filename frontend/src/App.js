@@ -2303,15 +2303,6 @@ const TeacherDashboard = ({ teacher, onLogout }) => {
   }
 
   return (
-      setShowCreateClass(false);
-      setNewClass({ class_name: '', subject: 'math', grade_level: '9th', description: '' });
-      loadTeacherClasses();
-    } catch (error) {
-      console.error('Error creating class:', error);
-    }
-  };
-
-  return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-indigo-100">
