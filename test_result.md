@@ -416,10 +416,8 @@ metadata:
   run_ui: false
 
 test_plan:
-  current_focus:
-    - "Practice Test System"
-  stuck_tasks:
-    - "Practice Test System"
+  current_focus: []
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
