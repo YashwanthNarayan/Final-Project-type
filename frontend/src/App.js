@@ -1330,6 +1330,240 @@ const NotificationsComponent = ({ student, onNavigate }) => {
   );
 };
 
+// My Classes Component
+const MyClassesComponent = ({ student, onNavigate }) => {
+  const [joinedClasses, setJoinedClasses] = useState([]);
+  const [showJoinClass, setShowJoinClass] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [joining, setJoining] = useState(false);
+
+  useEffect(() => {
+    loadStudentClasses();
+  }, []);
+
+  const loadStudentClasses = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/student/classes`);
+      setJoinedClasses(response.data);
+    } catch (error) {
+      console.error('Error loading classes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const joinClass = async (e) => {
+    e.preventDefault();
+    if (!joinCode.trim()) return;
+
+    setJoining(true);
+    try {
+      await axios.post(`${API_BASE}/api/student/join-class`, {
+        join_code: joinCode.trim().toUpperCase()
+      });
+      setJoinCode('');
+      setShowJoinClass(false);
+      loadStudentClasses(); // Reload the classes
+      alert('Successfully joined the class!');
+    } catch (error) {
+      console.error('Error joining class:', error);
+      alert(error.response?.data?.detail || 'Failed to join class. Please check the join code.');
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const getSubjectIcon = (subject) => {
+    const icons = {
+      math: '🧮',
+      physics: '⚡',
+      chemistry: '🧪',
+      biology: '🧬',
+      english: '📖',
+      history: '🏛️',
+      geography: '🌍'
+    };
+    return icons[subject] || '📚';
+  };
+
+  const getSubjectColor = (subject) => {
+    const colors = {
+      math: 'bg-blue-100 border-blue-300',
+      physics: 'bg-yellow-100 border-yellow-300',
+      chemistry: 'bg-green-100 border-green-300',
+      biology: 'bg-purple-100 border-purple-300',
+      english: 'bg-red-100 border-red-300',
+      history: 'bg-orange-100 border-orange-300',
+      geography: 'bg-teal-100 border-teal-300'
+    };
+    return colors[subject] || 'bg-gray-100 border-gray-300';
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-indigo-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => onNavigate('student-dashboard')}
+                className="text-indigo-600 hover:text-indigo-800 text-2xl"
+              >
+                ←
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">My Classes</h1>
+                <p className="text-sm text-gray-600">Manage your enrolled classes</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={() => setShowJoinClass(true)}
+                className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+              >
+                + Join Class
+              </button>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-900">{student?.name}</div>
+                <div className="text-xs text-gray-600">Grade {student?.grade_level}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-lg text-gray-600">Loading your classes...</div>
+          </div>
+        ) : joinedClasses.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-lg p-8 text-center">
+            <div className="text-6xl mb-4">🏫</div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">No classes joined yet!</h2>
+            <p className="text-gray-600 mb-6">
+              Ask your teacher for a class join code to get started with collaborative learning.
+            </p>
+            <button
+              onClick={() => setShowJoinClass(true)}
+              className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all mr-4"
+            >
+              Join Your First Class
+            </button>
+            <button
+              onClick={() => onNavigate('student-dashboard')}
+              className="bg-gray-200 text-gray-800 px-6 py-3 rounded-lg hover:bg-gray-300 transition-all"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+        ) : (
+          <div>
+            <div className="bg-white rounded-xl p-6 shadow-md mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                Your Classes ({joinedClasses.length})
+              </h2>
+              <p className="text-gray-600">
+                Connect with your teachers and classmates in these enrolled classes.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {joinedClasses.map((classRoom) => (
+                <div
+                  key={classRoom.id}
+                  className={`bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 border-2 ${getSubjectColor(classRoom.subject)}`}
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="text-4xl">{getSubjectIcon(classRoom.subject)}</div>
+                    <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">
+                      Active
+                    </span>
+                  </div>
+                  
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">{classRoom.class_name}</h3>
+                  <p className="text-gray-600 text-sm mb-3 capitalize">
+                    {classRoom.subject} • Grade {classRoom.grade_level}
+                  </p>
+                  
+                  {classRoom.description && (
+                    <p className="text-gray-600 text-sm mb-4">{classRoom.description}</p>
+                  )}
+                  
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-xs text-gray-500">Join Code:</div>
+                      <div className="font-mono font-bold text-gray-900">{classRoom.join_code}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-gray-500">Students:</div>
+                      <div className="font-bold text-gray-900">{classRoom.students?.length || 0}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <div className="text-xs text-gray-500">
+                      Joined: {new Date(classRoom.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Join Class Modal */}
+      {showJoinClass && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-8 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Join a Class</h2>
+            
+            <form onSubmit={joinClass} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Class Join Code
+                </label>
+                <input
+                  type="text"
+                  value={joinCode}
+                  onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                  placeholder="Enter 6-character code (e.g., ABC123)"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 font-mono text-center text-lg"
+                  maxLength="6"
+                  required
+                />
+                <p className="text-sm text-gray-600 mt-2">
+                  Ask your teacher for the class join code
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setShowJoinClass(false)}
+                  className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={joining || joinCode.length !== 6}
+                  className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {joining ? 'Joining...' : 'Join Class'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Student Dashboard Component
 const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
   const subjects = ['math', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography'];
