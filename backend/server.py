@@ -419,7 +419,7 @@ class PracticeTestBot:
         
         For each question, provide:
         1. Question text
-        2. Question type (MCQ/Short Answer/Numerical)
+        2. Question type (MUST BE ONE OF: "mcq", "short_answer", "numerical")
         3. Options (if MCQ, provide 4 options)
         4. Correct answer
         5. Detailed explanation
