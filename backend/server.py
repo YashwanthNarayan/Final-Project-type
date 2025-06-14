@@ -42,7 +42,7 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 # Security
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 # Enums
 class GradeLevel(str, Enum):
