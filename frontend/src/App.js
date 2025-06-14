@@ -378,21 +378,103 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
 
             <div className="mb-8">
               <h3 className="text-xl font-semibold text-gray-900 mb-6">{currentQuestion.question_text}</h3>
-              <div className="space-y-3">
-                {currentQuestion.options.map((option, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: option }))}
-                    className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                      userAnswers[currentQuestion.id] === option
-                        ? 'border-indigo-500 bg-indigo-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
+              
+              {/* Question Type Badge */}
+              <div className="mb-4">
+                <span className="inline-block bg-indigo-100 text-indigo-800 text-sm px-3 py-1 rounded-full capitalize">
+                  {currentQuestion.question_type?.replace('_', ' ') || 'Multiple Choice'}
+                </span>
               </div>
+
+              {/* Answer Input Based on Question Type */}
+              {currentQuestion.question_type === 'mcq' || !currentQuestion.question_type ? (
+                /* Multiple Choice Questions */
+                <div className="space-y-3">
+                  {currentQuestion.options && currentQuestion.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: option }))}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        userAnswers[currentQuestion.id] === option
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              ) : currentQuestion.question_type === 'short_answer' ? (
+                /* Short Answer Questions */
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Answer:</label>
+                  <input
+                    type="text"
+                    value={userAnswers[currentQuestion.id] || ''}
+                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                    placeholder="Enter your answer here..."
+                    maxLength="200"
+                  />
+                  <div className="text-sm text-gray-500 mt-1">
+                    {(userAnswers[currentQuestion.id] || '').length}/200 characters
+                  </div>
+                </div>
+              ) : currentQuestion.question_type === 'numerical' ? (
+                /* Numerical Questions */
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Answer:</label>
+                  <input
+                    type="number"
+                    step="any"
+                    value={userAnswers[currentQuestion.id] || ''}
+                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                    placeholder="Enter numerical answer..."
+                  />
+                  <div className="text-sm text-gray-500 mt-1">
+                    Enter numbers only (decimals allowed)
+                  </div>
+                </div>
+              ) : currentQuestion.question_type === 'long_answer' ? (
+                /* Long Answer Questions */
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Answer:</label>
+                  <textarea
+                    value={userAnswers[currentQuestion.id] || ''}
+                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                    placeholder="Write your detailed answer here..."
+                    rows="6"
+                    maxLength="1000"
+                  />
+                  <div className="text-sm text-gray-500 mt-1">
+                    {(userAnswers[currentQuestion.id] || '').length}/1000 characters
+                  </div>
+                </div>
+              ) : (
+                /* Fallback for unknown question types */
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Your Answer:</label>
+                  <textarea
+                    value={userAnswers[currentQuestion.id] || ''}
+                    onChange={(e) => setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg focus:border-indigo-500 focus:outline-none"
+                    placeholder="Enter your answer here..."
+                    rows="4"
+                  />
+                </div>
+              )}
+
+              {/* Show question explanation hint if available */}
+              {currentQuestion.learning_objectives && currentQuestion.learning_objectives.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                  <div className="text-sm font-medium text-blue-900 mb-1">💡 Learning Objective:</div>
+                  <div className="text-sm text-blue-700">
+                    {currentQuestion.learning_objectives[0]}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-between">
