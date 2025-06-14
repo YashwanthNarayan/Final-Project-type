@@ -278,6 +278,18 @@ def verify_password(password: str, hashed: str) -> bool:
 def generate_join_code() -> str:
     return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
 
+async def create_notification(recipient_id: str, title: str, message: str, notification_type: str = "system", sender_id: str = None):
+    """Helper function to create notifications"""
+    notification = Notification(
+        recipient_id=recipient_id,
+        sender_id=sender_id,
+        title=title,
+        message=message,
+        type=notification_type
+    )
+    await db.notifications.insert_one(notification.dict())
+    return notification
+
 # AI Bot Classes
 class CentralBrainBot:
     def __init__(self):
