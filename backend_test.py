@@ -711,6 +711,173 @@ class TestProjectKV3Backend(unittest.TestCase):
         except Exception as e:
             print(f"❌ Health check test failed: {str(e)}")
 
+    def test_17_teacher_analytics_overview(self):
+        """Test teacher analytics overview endpoint"""
+        print("\n🔍 Testing Teacher Analytics Overview...")
+        
+        if not self.teacher_token:
+            self.skipTest("Teacher token not available")
+        
+        url = f"{API_URL}/teacher/analytics/overview"
+        headers = {"Authorization": f"Bearer {self.teacher_token}"}
+        
+        try:
+            response = requests.get(url, headers=headers)
+            print(f"Teacher Analytics Overview Response: {response.status_code}")
+            
+            self.assertEqual(response.status_code, 200, "Failed to get teacher analytics overview")
+            data = response.json()
+            
+            # Verify the structure of the response
+            self.assertIn("overview_metrics", data, "Overview metrics not found in response")
+            self.assertIn("class_summary", data, "Class summary not found in response")
+            self.assertIn("subject_distribution", data, "Subject distribution not found in response")
+            self.assertIn("weekly_activity_trend", data, "Weekly activity trend not found in response")
+            
+            # Verify overview metrics
+            metrics = data.get("overview_metrics", {})
+            self.assertIn("total_classes", metrics, "Total classes not found in metrics")
+            self.assertIn("total_students", metrics, "Total students not found in metrics")
+            self.assertIn("total_messages", metrics, "Total messages not found in metrics")
+            self.assertIn("total_tests", metrics, "Total tests not found in metrics")
+            self.assertIn("average_score", metrics, "Average score not found in metrics")
+            
+            # Verify class summary
+            class_summary = data.get("class_summary", [])
+            self.assertIsInstance(class_summary, list, "Class summary should be a list")
+            
+            if len(class_summary) > 0:
+                first_class = class_summary[0]
+                self.assertIn("class_info", first_class, "Class info not found in class summary")
+                self.assertIn("student_count", first_class, "Student count not found in class summary")
+                self.assertIn("average_xp", first_class, "Average XP not found in class summary")
+                self.assertIn("weekly_activity", first_class, "Weekly activity not found in class summary")
+            
+            print(f"Teacher analytics overview loaded with {len(class_summary)} classes")
+            print("✅ Teacher analytics overview test passed")
+        except Exception as e:
+            print(f"❌ Teacher analytics overview test failed: {str(e)}")
+
+    def test_18_teacher_analytics_class(self):
+        """Test teacher analytics for a specific class"""
+        print("\n🔍 Testing Teacher Analytics for Class...")
+        
+        if not self.teacher_token or not self.class_id:
+            self.skipTest("Teacher token or class ID not available")
+        
+        url = f"{API_URL}/teacher/analytics/class/{self.class_id}"
+        headers = {"Authorization": f"Bearer {self.teacher_token}"}
+        
+        try:
+            response = requests.get(url, headers=headers)
+            print(f"Teacher Analytics Class Response: {response.status_code}")
+            
+            self.assertEqual(response.status_code, 200, "Failed to get teacher analytics for class")
+            data = response.json()
+            
+            # Verify the structure of the response
+            self.assertIn("class_info", data, "Class info not found in response")
+            self.assertIn("student_count", data, "Student count not found in response")
+            
+            # Verify class info
+            class_info = data.get("class_info", {})
+            self.assertEqual(class_info.get("class_id"), self.class_id, "Class ID mismatch")
+            
+            # If there are students in the class, verify student analytics
+            if data.get("student_count", 0) > 0:
+                self.assertIn("class_metrics", data, "Class metrics not found in response")
+                self.assertIn("student_analytics", data, "Student analytics not found in response")
+                
+                # Verify class metrics
+                class_metrics = data.get("class_metrics", {})
+                self.assertIn("average_xp", class_metrics, "Average XP not found in class metrics")
+                self.assertIn("average_level", class_metrics, "Average level not found in class metrics")
+                self.assertIn("total_messages", class_metrics, "Total messages not found in class metrics")
+                self.assertIn("total_tests", class_metrics, "Total tests not found in class metrics")
+                self.assertIn("average_score", class_metrics, "Average score not found in class metrics")
+                self.assertIn("active_students", class_metrics, "Active students not found in class metrics")
+                
+                # Verify student analytics
+                student_analytics = data.get("student_analytics", {})
+                self.assertIsInstance(student_analytics, dict, "Student analytics should be a dictionary")
+            
+            print(f"Teacher analytics for class loaded with {data.get('student_count', 0)} students")
+            print("✅ Teacher analytics class test passed")
+        except Exception as e:
+            print(f"❌ Teacher analytics class test failed: {str(e)}")
+
+    def test_19_teacher_analytics_student(self):
+        """Test teacher analytics for a specific student"""
+        print("\n🔍 Testing Teacher Analytics for Student...")
+        
+        if not self.teacher_token or not self.student_id:
+            self.skipTest("Teacher token or student ID not available")
+        
+        # First, make sure the student is in the teacher's class
+        if not self.class_id or not self.join_code:
+            self.skipTest("Class ID or join code not available")
+        
+        # Join the class if not already joined
+        join_url = f"{API_URL}/student/join-class"
+        join_headers = {"Authorization": f"Bearer {self.student_token}"}
+        join_payload = {"join_code": self.join_code}
+        
+        try:
+            # Try to join the class (will be ignored if already joined)
+            requests.post(join_url, json=join_payload, headers=join_headers)
+            
+            # Now test the student analytics endpoint
+            url = f"{API_URL}/teacher/analytics/student/{self.student_id}"
+            headers = {"Authorization": f"Bearer {self.teacher_token}"}
+            
+            response = requests.get(url, headers=headers)
+            print(f"Teacher Analytics Student Response: {response.status_code}")
+            
+            self.assertEqual(response.status_code, 200, "Failed to get teacher analytics for student")
+            data = response.json()
+            
+            # Verify the structure of the response
+            self.assertIn("student_profile", data, "Student profile not found in response")
+            self.assertIn("subject_analytics", data, "Subject analytics not found in response")
+            self.assertIn("overall_stats", data, "Overall stats not found in response")
+            self.assertIn("activity_timeline", data, "Activity timeline not found in response")
+            self.assertIn("wellness_data", data, "Wellness data not found in response")
+            
+            # Verify student profile
+            student_profile = data.get("student_profile", {})
+            self.assertEqual(student_profile.get("user_id"), self.student_id, "Student ID mismatch")
+            
+            # Verify overall stats
+            overall_stats = data.get("overall_stats", {})
+            self.assertIn("total_messages", overall_stats, "Total messages not found in overall stats")
+            self.assertIn("total_tests", overall_stats, "Total tests not found in overall stats")
+            self.assertIn("total_mindfulness_sessions", overall_stats, "Total mindfulness sessions not found in overall stats")
+            self.assertIn("total_events", overall_stats, "Total events not found in overall stats")
+            self.assertIn("average_test_score", overall_stats, "Average test score not found in overall stats")
+            self.assertIn("study_streak", overall_stats, "Study streak not found in overall stats")
+            self.assertIn("total_xp", overall_stats, "Total XP not found in overall stats")
+            self.assertIn("current_level", overall_stats, "Current level not found in overall stats")
+            
+            # Verify subject analytics
+            subject_analytics = data.get("subject_analytics", {})
+            self.assertIsInstance(subject_analytics, dict, "Subject analytics should be a dictionary")
+            
+            # Verify activity timeline
+            activity_timeline = data.get("activity_timeline", {})
+            self.assertIn("daily_activity", activity_timeline, "Daily activity not found in activity timeline")
+            self.assertIn("performance_trend", activity_timeline, "Performance trend not found in activity timeline")
+            self.assertIn("recent_activity", activity_timeline, "Recent activity not found in activity timeline")
+            
+            # Verify wellness data
+            wellness_data = data.get("wellness_data", {})
+            self.assertIn("mindfulness_sessions", wellness_data, "Mindfulness sessions not found in wellness data")
+            self.assertIn("total_mindfulness_minutes", wellness_data, "Total mindfulness minutes not found in wellness data")
+            self.assertIn("mood_trends", wellness_data, "Mood trends not found in wellness data")
+            
+            print("✅ Teacher analytics student test passed")
+        except Exception as e:
+            print(f"❌ Teacher analytics student test failed: {str(e)}")
+
 if __name__ == "__main__":
     # Run the V3 tests
     print("\n==== TESTING PROJECT K V3 BACKEND ====\n")
