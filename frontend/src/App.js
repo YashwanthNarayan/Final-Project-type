@@ -493,7 +493,7 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
                     setCurrentQuestionIndex(prev => prev + 1);
                   }
                 }}
-                disabled={!userAnswers[currentQuestion.id]}
+                disabled={!userAnswers[currentQuestion.id] || userAnswers[currentQuestion.id].toString().trim() === ''}
                 className="bg-indigo-500 text-white px-6 py-3 rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {currentQuestionIndex === currentTest.questions.length - 1 ? 'Finish Test' : 'Next Question'}
