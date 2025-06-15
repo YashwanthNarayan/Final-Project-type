@@ -2966,6 +2966,537 @@ const ChatInterface = ({ student, subject, onNavigate }) => {
   );
 };
 
+// Unified Class Interface Component
+const UnifiedClassInterface = ({ student, onNavigate }) => {
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState('chatbot');
+
+  const subjects = [
+    { id: 'math', name: 'Mathematics', icon: '🧮', color: 'bg-blue-100 border-blue-300' },
+    { id: 'physics', name: 'Physics', icon: '⚡', color: 'bg-yellow-100 border-yellow-300' },
+    { id: 'chemistry', name: 'Chemistry', icon: '🧪', color: 'bg-green-100 border-green-300' },
+    { id: 'biology', name: 'Biology', icon: '🧬', color: 'bg-purple-100 border-purple-300' },
+    { id: 'english', name: 'English', icon: '📖', color: 'bg-red-100 border-red-300' },
+    { id: 'history', name: 'History', icon: '🏛️', color: 'bg-orange-100 border-orange-300' },
+    { id: 'geography', name: 'Geography', icon: '🌍', color: 'bg-teal-100 border-teal-300' }
+  ];
+
+  useEffect(() => {
+    if (!selectedSubject && subjects.length > 0) {
+      setSelectedSubject(subjects[0]);
+    }
+  }, []);
+
+  const sidebarTabs = [
+    { id: 'chatbot', name: 'AI Tutor', icon: '🤖' },
+    { id: 'previous-chats', name: 'Chat History', icon: '💬' },
+    { id: 'notes', name: 'Notes', icon: '📝' },
+    { id: 'assignments', name: 'Assignments', icon: '📋' },
+    { id: 'practice-tests', name: 'Practice Tests', icon: '🎯' },
+    { id: 'documents', name: 'Documents', icon: '📄' },
+    { id: 'progress', name: 'Progress', icon: '📊' },
+    { id: 'schedule', name: 'Schedule', icon: '📅' }
+  ];
+
+  const renderContent = () => {
+    if (!selectedSubject) return null;
+
+    switch (activeTab) {
+      case 'chatbot':
+        return <ChatInterface student={student} subject={selectedSubject.id} onNavigate={onNavigate} embedded={true} />;
+      case 'previous-chats':
+        return <PreviousChatsTab subject={selectedSubject.id} />;
+      case 'notes':
+        return <NotesTab subject={selectedSubject.id} />;
+      case 'assignments':
+        return <AssignmentsTab subject={selectedSubject.id} />;
+      case 'practice-tests':
+        return <PracticeTestsTab subject={selectedSubject.id} student={student} />;
+      case 'documents':
+        return <DocumentsTab subject={selectedSubject.id} />;
+      case 'progress':
+        return <ProgressTab subject={selectedSubject.id} student={student} />;
+      case 'schedule':
+        return <ScheduleTab subject={selectedSubject.id} student={student} />;
+      default:
+        return <div className="bg-white rounded-xl shadow-lg p-6"><h2 className="text-2xl font-bold text-gray-900">Coming Soon!</h2></div>;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex">
+      {/* Header */}
+      <div className="fixed top-0 left-0 right-0 z-40 bg-white shadow-sm border-b border-indigo-100">
+        <div className="flex justify-between items-center py-4 px-6">
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => onNavigate('student-dashboard')}
+              className="text-indigo-600 hover:text-indigo-700"
+            >
+              ← Back
+            </button>
+            <div className="text-2xl">{selectedSubject?.icon}</div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">{selectedSubject?.name} Class</h1>
+              <p className="text-sm text-gray-600">All-in-one subject learning hub</p>
+            </div>
+          </div>
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-gray-600 hover:text-gray-900 lg:hidden"
+            >
+              ☰
+            </button>
+            <div className="text-right hidden sm:block">
+              <div className="text-sm font-medium text-gray-900">{student?.name}</div>
+              <div className="text-xs text-gray-600">Grade {student?.grade_level}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Subject Selector */}
+      <div className="fixed top-16 left-0 right-0 z-30 bg-white border-b border-gray-200">
+        <div className="flex overflow-x-auto py-2 px-6 space-x-2">
+          {subjects.map((subject) => (
+            <button
+              key={subject.id}
+              onClick={() => setSelectedSubject(subject)}
+              className={`flex-shrink-0 flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
+                selectedSubject?.id === subject.id
+                  ? `${subject.color} border-2`
+                  : 'bg-gray-100 border-gray-300 hover:bg-gray-200'
+              }`}
+            >
+              <span className="text-xl">{subject.icon}</span>
+              <span className="font-medium">{subject.name}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Sidebar */}
+      <div className={`fixed top-32 left-0 bottom-0 z-20 bg-white border-r border-gray-200 transition-all duration-300 ${
+        sidebarOpen ? 'w-64' : 'w-16'
+      } lg:w-64`}>
+        <div className="p-4 space-y-2">
+          {sidebarTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors ${
+                activeTab === tab.id
+                  ? 'bg-indigo-100 text-indigo-700 border border-indigo-300'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              <span className="text-lg">{tab.icon}</span>
+              {(sidebarOpen || window.innerWidth >= 1024) && (
+                <span className="font-medium">{tab.name}</span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className={`flex-1 transition-all duration-300 ${
+        sidebarOpen ? 'ml-64' : 'ml-16'
+      } lg:ml-64 mt-32`}>
+        <div className="p-6">
+          {renderContent()}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Individual Tab Components for Unified Interface
+const PreviousChatsTab = ({ subject }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Chat History - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Previous conversations with your AI tutor will appear here.</div>
+  </div>
+);
+
+const NotesTab = ({ subject }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Notes - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Your study notes and important points will be saved here.</div>
+  </div>
+);
+
+const AssignmentsTab = ({ subject }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Assignments - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Upcoming and completed assignments will be displayed here.</div>
+  </div>
+);
+
+const PracticeTestsTab = ({ subject, student }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Practice Tests - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Subject-specific practice tests and quizzes.</div>
+  </div>
+);
+
+const DocumentsTab = ({ subject }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Documents - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Study materials, PDFs, and resources will be organized here.</div>
+  </div>
+);
+
+const ProgressTab = ({ subject, student }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Progress - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Your learning progress and performance analytics for this subject.</div>
+  </div>
+);
+
+const ScheduleTab = ({ subject, student }) => (
+  <div className="bg-white rounded-xl shadow-lg p-6">
+    <h2 className="text-2xl font-bold text-gray-900 mb-4">Schedule - {subject.charAt(0).toUpperCase() + subject.slice(1)}</h2>
+    <div className="text-gray-600">Upcoming classes, study sessions, and important dates for this subject.</div>
+  </div>
+);
+
+// Project Tara Component - Hexagonal Stress Relief
+const ProjectTaraComponent = ({ student, onNavigate }) => {
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [stressLevelBefore, setStressLevelBefore] = useState(5);
+  const [stressLevelAfter, setStressLevelAfter] = useState(5);
+  const [isActive, setIsActive] = useState(false);
+  const [timer, setTimer] = useState(0);
+  const [showPreStress, setShowPreStress] = useState(false);
+  const [showPostStress, setShowPostStress] = useState(false);
+
+  const activities = [
+    { 
+      id: 'breathing', 
+      name: 'Breathing Exercise', 
+      icon: '🫁', 
+      description: 'Calm your mind with guided breathing',
+      options: [
+        { duration: 5, difficulty: 'Easy', description: '4-7-8 breathing' },
+        { duration: 10, difficulty: 'Medium', description: 'Box breathing' },
+        { duration: 15, difficulty: 'Advanced', description: 'Pranayama techniques' },
+        { duration: 3, difficulty: 'Quick', description: 'Emergency calm' },
+        { duration: 20, difficulty: 'Deep', description: 'Complete relaxation' }
+      ]
+    },
+    { 
+      id: 'meditation', 
+      name: 'Mindful Meditation', 
+      icon: '🧘', 
+      description: 'Center yourself with mindfulness',
+      options: [
+        { duration: 5, difficulty: 'Beginner', description: 'Basic awareness' },
+        { duration: 10, difficulty: 'Intermediate', description: 'Body scan' },
+        { duration: 15, difficulty: 'Advanced', description: 'Loving kindness' },
+        { duration: 7, difficulty: 'Focus', description: 'Concentration boost' },
+        { duration: 20, difficulty: 'Deep', description: 'Transcendental' }
+      ]
+    },
+    { 
+      id: 'movement', 
+      name: 'Gentle Movement', 
+      icon: '🤸', 
+      description: 'Release tension with light exercise',
+      options: [
+        { duration: 5, difficulty: 'Light', description: 'Neck & shoulders' },
+        { duration: 10, difficulty: 'Moderate', description: 'Full body stretch' },
+        { duration: 15, difficulty: 'Active', description: 'Yoga flow' },
+        { duration: 3, difficulty: 'Quick', description: 'Desk stretches' },
+        { duration: 20, difficulty: 'Complete', description: 'Full workout' }
+      ]
+    },
+    { 
+      id: 'visualization', 
+      name: 'Visualization', 
+      icon: '🌅', 
+      description: 'Journey to peaceful places',
+      options: [
+        { duration: 5, difficulty: 'Simple', description: 'Beach scene' },
+        { duration: 10, difficulty: 'Detailed', description: 'Forest walk' },
+        { duration: 15, difficulty: 'Immersive', description: 'Mountain retreat' },
+        { duration: 7, difficulty: 'Success', description: 'Goal achievement' },
+        { duration: 12, difficulty: 'Healing', description: 'Inner sanctuary' }
+      ]
+    },
+    { 
+      id: 'sound', 
+      name: 'Sound Therapy', 
+      icon: '🎵', 
+      description: 'Relax with calming sounds',
+      options: [
+        { duration: 5, difficulty: 'Gentle', description: 'Rain sounds' },
+        { duration: 10, difficulty: 'Nature', description: 'Forest ambience' },
+        { duration: 15, difficulty: 'Musical', description: 'Tibetan bowls' },
+        { duration: 8, difficulty: 'Focus', description: 'White noise' },
+        { duration: 20, difficulty: 'Deep', description: 'Binaural beats' }
+      ]
+    },
+    { 
+      id: 'gratitude', 
+      name: 'Gratitude Practice', 
+      icon: '🙏', 
+      description: 'Shift focus to positive thoughts',
+      options: [
+        { duration: 5, difficulty: 'Basic', description: '3 things grateful for' },
+        { duration: 10, difficulty: 'Detailed', description: 'Gratitude letter' },
+        { duration: 15, difficulty: 'Deep', description: 'Life appreciation' },
+        { duration: 3, difficulty: 'Quick', description: 'Moment of thanks' },
+        { duration: 12, difficulty: 'Reflective', description: 'Gratitude meditation' }
+      ]
+    }
+  ];
+
+  const startActivity = (activity, option) => {
+    setSelectedActivity({ ...activity, selectedOption: option });
+    setShowPreStress(true);
+  };
+
+  const beginActivity = () => {
+    setShowPreStress(false);
+    setIsActive(true);
+    setTimer(selectedActivity.selectedOption.duration * 60);
+  };
+
+  const completeActivity = async () => {
+    setIsActive(false);
+    setShowPostStress(true);
+    
+    try {
+      await axios.post(`${API_BASE}/api/mindfulness/activity`, {
+        activity_type: selectedActivity.id,
+        duration: selectedActivity.selectedOption.duration,
+        mood_before: stressLevelBefore,
+        mood_after: stressLevelAfter
+      });
+    } catch (error) {
+      console.error('Error saving mindfulness activity:', error);
+    }
+  };
+
+  const finishSession = () => {
+    setSelectedActivity(null);
+    setShowPostStress(false);
+    setStressLevelBefore(5);
+    setStressLevelAfter(5);
+  };
+
+  useEffect(() => {
+    let interval = null;
+    if (isActive && timer > 0) {
+      interval = setInterval(() => {
+        setTimer(timer => {
+          if (timer <= 1) {
+            setIsActive(false);
+            setShowPostStress(true);
+            return 0;
+          }
+          return timer - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isActive, timer]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (showPreStress && selectedActivity) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">{selectedActivity.icon}</div>
+            <h2 className="text-2xl font-bold text-gray-900">{selectedActivity.name}</h2>
+            <p className="text-gray-600">{selectedActivity.selectedOption.description}</p>
+            <p className="text-sm text-gray-500">{selectedActivity.selectedOption.duration} minutes • {selectedActivity.selectedOption.difficulty}</p>
+          </div>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              How stressed do you feel right now? (1-10)
+            </label>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">😌</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={stressLevelBefore}
+                onChange={(e) => setStressLevelBefore(parseInt(e.target.value))}
+                className="flex-1"
+              />
+              <span className="text-sm">😰</span>
+              <span className="text-sm font-medium w-8 text-center">{stressLevelBefore}</span>
+            </div>
+          </div>
+
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setSelectedActivity(null)}
+              className="flex-1 bg-gray-200 text-gray-800 py-3 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={beginActivity}
+              className="flex-1 bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all"
+            >
+              Start Activity
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isActive && selectedActivity) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="text-8xl mb-6">{selectedActivity.icon}</div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">{selectedActivity.name}</h2>
+          <div className="text-6xl font-bold text-green-600 mb-6">{formatTime(timer)}</div>
+          <p className="text-lg text-gray-700 mb-8">{selectedActivity.selectedOption.description}</p>
+          
+          <button
+            onClick={() => setIsActive(false)}
+            className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-colors"
+          >
+            Stop Early
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (showPostStress && selectedActivity) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50 flex items-center justify-center p-6">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">✨</div>
+            <h2 className="text-2xl font-bold text-gray-900">Great Job!</h2>
+            <p className="text-gray-600">You completed your {selectedActivity.name} session</p>
+          </div>
+          
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              How do you feel now? (1-10)
+            </label>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm">😌</span>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={stressLevelAfter}
+                onChange={(e) => setStressLevelAfter(parseInt(e.target.value))}
+                className="flex-1"
+              />
+              <span className="text-sm">😰</span>
+              <span className="text-sm font-medium w-8 text-center">{stressLevelAfter}</span>
+            </div>
+          </div>
+
+          <div className="bg-gray-50 rounded-lg p-4 mb-6">
+            <div className="text-sm text-gray-600">Stress Level Change:</div>
+            <div className={`text-lg font-bold ${stressLevelAfter < stressLevelBefore ? 'text-green-600' : 'text-blue-600'}`}>
+              {stressLevelBefore} → {stressLevelAfter} 
+              {stressLevelAfter < stressLevelBefore && <span className="text-green-600"> ↓ Improved!</span>}
+            </div>
+          </div>
+
+          <button
+            onClick={completeActivity}
+            className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 px-4 rounded-lg hover:from-green-600 hover:to-blue-600 transition-all"
+          >
+            Complete Session
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-purple-50">
+      {/* Header */}
+      <header className="bg-white shadow-sm border-b border-green-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => onNavigate('student-dashboard')}
+                className="text-green-600 hover:text-green-700"
+              >
+                ← Back
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900">🌟 Project Tara</h1>
+                <p className="text-sm text-gray-600">Daily stress-relief activities for better mental health</p>
+              </div>
+            </div>
+            <div className="text-right hidden sm:block">
+              <div className="text-sm font-medium text-gray-900">{student?.name}</div>
+              <div className="text-xs text-gray-600">Your wellness matters</div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Choose Your Stress-Relief Activity</h2>
+          <p className="text-gray-600">Each hexagon offers 5 different options to match your mood and time</p>
+        </div>
+
+        {/* Hexagonal Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {activities.map((activity) => (
+            <div key={activity.id} className="relative">
+              <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 transform hover:scale-105">
+                <div className="text-center mb-4">
+                  <div className="text-6xl mb-4">{activity.icon}</div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{activity.name}</h3>
+                  <p className="text-gray-600 text-sm">{activity.description}</p>
+                </div>
+                
+                <div className="space-y-2">
+                  {activity.options.map((option, index) => (
+                    <button
+                      key={index}
+                      onClick={() => startActivity(activity, option)}
+                      className="w-full text-left p-3 rounded-lg border border-gray-200 hover:border-green-300 hover:bg-green-50 transition-all"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-medium text-gray-900">{option.description}</div>
+                          <div className="text-sm text-gray-600">{option.duration} min • {option.difficulty}</div>
+                        </div>
+                        <div className="text-green-600">→</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Main App Component
 function App() {
   const [currentView, setCurrentView] = useState('auth'); // 'auth', 'student-dashboard', 'teacher-dashboard', 'chat', etc.
