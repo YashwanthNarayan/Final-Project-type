@@ -581,6 +581,193 @@ subject_bots = {
 }
 practice_bot = PracticeTestBot()
 
+class SmartAssistantBot:
+    def __init__(self):
+        self.api_key = os.environ.get('GEMINI_API_KEY')
+        
+    async def get_comprehensive_student_context(self, student_id: str):
+        """Get comprehensive context about the student"""
+        # Get student profile
+        profile = await db.student_profiles.find_one({"user_id": student_id})
+        
+        # Get upcoming calendar events
+        upcoming_events = await db.calendar_events.find({
+            "student_id": student_id,
+            "start_time": {"$gte": datetime.utcnow()}
+        }).sort("start_time", 1).limit(10).to_list(10)
+        
+        # Get recent practice test performance
+        recent_attempts = await db.practice_attempts.find({
+            "student_id": student_id
+        }).sort("completed_at", -1).limit(5).to_list(5)
+        
+        # Get recent chat activity
+        recent_messages = await db.chat_messages.find({
+            "student_id": student_id
+        }).sort("timestamp", -1).limit(10).to_list(10)
+        
+        # Get joined classes
+        classes = await db.classrooms.find({
+            "students": student_id
+        }).to_list(20)
+        
+        # Get recent notifications
+        notifications = await db.notifications.find({
+            "recipient_id": student_id,
+            "is_read": False
+        }).sort("created_at", -1).limit(5).to_list(5)
+        
+        return {
+            "profile": profile,
+            "upcoming_events": upcoming_events,
+            "recent_attempts": recent_attempts,
+            "recent_messages": recent_messages,
+            "classes": classes,
+            "unread_notifications": notifications
+        }
+    
+    async def create_study_plan(self, student_id: str, available_time: int, context: dict):
+        """Create an adaptive study plan based on available time and student context"""
+        
+        system_prompt = f"""You are the Smart Personal Assistant for Project K, an AI educational platform. 
+        
+        STUDENT CONTEXT:
+        - Name: {context['profile']['name'] if context['profile'] else 'Student'}
+        - Grade: {context['profile']['grade_level'] if context['profile'] else 'Unknown'}
+        - Level: {context['profile']['level'] if context['profile'] else 1}
+        - Total XP: {context['profile']['total_xp'] if context['profile'] else 0}
+        - Streak: {context['profile']['streak_days'] if context['profile'] else 0} days
+        
+        UPCOMING EVENTS:
+        {self._format_events(context['upcoming_events'])}
+        
+        RECENT PERFORMANCE:
+        {self._format_recent_performance(context['recent_attempts'])}
+        
+        CLASSES ENROLLED:
+        {self._format_classes(context['classes'])}
+        
+        AVAILABLE TIME: {available_time} minutes
+        
+        Create a personalized study plan that:
+        1. Prioritizes upcoming exams/assignments
+        2. Focuses on subjects where performance is low
+        3. Includes appropriate breaks (5-10 min every 25-30 min)
+        4. Adapts to the student's level and grade
+        5. Provides specific time allocation for each topic
+        6. Includes motivational elements
+        
+        Format as a structured plan with:
+        - Priority ranking
+        - Time allocation per topic
+        - Break schedule
+        - Motivational message
+        
+        Be encouraging and supportive!"""
+        
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = await asyncio.to_thread(model.generate_content, system_prompt)
+        
+        return response.text
+    
+    async def answer_general_query(self, student_id: str, query: str, context: dict):
+        """Answer general queries about the student's academic life"""
+        
+        system_prompt = f"""You are the Smart Personal Assistant for Project K. Answer the student's query using their personal data.
+        
+        STUDENT CONTEXT:
+        - Name: {context['profile']['name'] if context['profile'] else 'Student'}
+        - Grade: {context['profile']['grade_level'] if context['profile'] else 'Unknown'}
+        - Level: {context['profile']['level'] if context['profile'] else 1}
+        - Total XP: {context['profile']['total_xp'] if context['profile'] else 0}
+        - Streak: {context['profile']['streak_days'] if context['profile'] else 0} days
+        
+        TODAY'S EVENTS:
+        {self._format_todays_events(context['upcoming_events'])}
+        
+        UPCOMING EVENTS:
+        {self._format_events(context['upcoming_events'])}
+        
+        UNREAD NOTIFICATIONS:
+        {self._format_notifications(context['unread_notifications'])}
+        
+        RECENT PERFORMANCE:
+        {self._format_recent_performance(context['recent_attempts'])}
+        
+        STUDENT QUERY: {query}
+        
+        Provide a helpful, personalized response that:
+        1. Uses the student's actual data
+        2. Is encouraging and motivational
+        3. Provides actionable insights
+        4. References specific events, grades, or performance when relevant
+        5. Suggests next steps or actions
+        
+        Be conversational, friendly, and supportive!"""
+        
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = await asyncio.to_thread(model.generate_content, system_prompt)
+        
+        return response.text
+    
+    def _format_events(self, events):
+        if not events:
+            return "No upcoming events"
+        
+        formatted = []
+        for event in events:
+            date = datetime.fromisoformat(event['start_time'].replace('Z', '+00:00')) if isinstance(event['start_time'], str) else event['start_time']
+            formatted.append(f"- {event['title']} ({event['event_type']}) on {date.strftime('%Y-%m-%d %H:%M')}")
+        
+        return "\n".join(formatted)
+    
+    def _format_todays_events(self, events):
+        if not events:
+            return "No events scheduled for today"
+        
+        today = datetime.utcnow().date()
+        todays_events = []
+        
+        for event in events:
+            event_date = datetime.fromisoformat(event['start_time'].replace('Z', '+00:00')) if isinstance(event['start_time'], str) else event['start_time']
+            if event_date.date() == today:
+                todays_events.append(f"- {event['title']} at {event_date.strftime('%H:%M')}")
+        
+        return "\n".join(todays_events) if todays_events else "No events scheduled for today"
+    
+    def _format_recent_performance(self, attempts):
+        if not attempts:
+            return "No recent practice tests"
+        
+        formatted = []
+        for attempt in attempts:
+            formatted.append(f"- Score: {attempt['score']:.1f}% (Time: {attempt['time_taken']//60}min)")
+        
+        return "\n".join(formatted)
+    
+    def _format_classes(self, classes):
+        if not classes:
+            return "No classes enrolled"
+        
+        formatted = []
+        for cls in classes:
+            formatted.append(f"- {cls['class_name']} ({cls['subject'].title()}) - Grade {cls['grade_level']}")
+        
+        return "\n".join(formatted)
+    
+    def _format_notifications(self, notifications):
+        if not notifications:
+            return "No unread notifications"
+        
+        formatted = []
+        for notif in notifications:
+            formatted.append(f"- {notif['title']}: {notif['message'][:50]}...")
+        
+        return "\n".join(formatted)
+
+# Initialize the smart assistant
+smart_assistant = SmartAssistantBot()
+
 # Authentication Routes
 @api_router.post("/auth/register")
 async def register_user(user_data: UserCreate):
