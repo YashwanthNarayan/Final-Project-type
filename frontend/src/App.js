@@ -1901,31 +1901,23 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        {/* Quick Actions - Streamlined */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <button
-            onClick={() => onNavigate('subjects')}
+            onClick={() => onNavigate('unified-classes')}
             className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-6 rounded-xl hover:from-indigo-600 hover:to-purple-700 transition-all duration-200 transform hover:scale-105 text-left"
           >
-            <div className="text-3xl mb-3">🎓</div>
-            <h3 className="font-semibold mb-2">Study with AI Tutor</h3>
-            <p className="text-sm opacity-90">Get personalized help in any subject</p>
+            <div className="text-3xl mb-3">🏫</div>
+            <h3 className="font-semibold mb-2">My Classes</h3>
+            <p className="text-sm opacity-90">Study with subject-specific AI tutors, take tests, view progress</p>
           </button>
           <button
-            onClick={() => onNavigate('practice')}
-            className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
+            onClick={() => onNavigate('project-tara')}
+            className="bg-gradient-to-r from-green-400 to-blue-500 text-white p-6 rounded-xl hover:from-green-500 hover:to-blue-600 transition-all duration-200 transform hover:scale-105 text-left"
           >
-            <div className="text-3xl mb-3">📝</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Practice Tests</h3>
-            <p className="text-sm text-gray-600">Take adaptive quizzes to test your knowledge</p>
-          </button>
-          <button
-            onClick={() => onNavigate('mindfulness')}
-            className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
-          >
-            <div className="text-3xl mb-3">🧘</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Mindfulness</h3>
-            <p className="text-sm text-gray-600">Breathing exercises and stress management</p>
+            <div className="text-3xl mb-3">🌟</div>
+            <h3 className="font-semibold mb-2">Project Tara</h3>
+            <p className="text-sm opacity-90">Daily stress-relief activities to boost your mood</p>
           </button>
           <button
             onClick={() => onNavigate('calendar')}
@@ -1933,61 +1925,28 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
           >
             <div className="text-3xl mb-3">📅</div>
             <h3 className="font-semibold text-gray-900 mb-2">My Schedule</h3>
-            <p className="text-sm text-gray-600">View your study schedule and events</p>
+            <p className="text-sm text-gray-600">Manage your study schedule and events</p>
           </button>
         </div>
 
-        {/* Additional Quick Actions Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        {/* Progress Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <button
             onClick={() => onNavigate('progress')}
             className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
           >
             <div className="text-3xl mb-3">📊</div>
             <h3 className="font-semibold text-gray-900 mb-2">Progress Tracker</h3>
-            <p className="text-sm text-gray-600">View your learning progress and achievements</p>
+            <p className="text-sm text-gray-600">View detailed analytics and achievements</p>
           </button>
           <button
-            onClick={() => onNavigate('notifications')}
+            onClick={() => onNavigate('mindfulness')}
             className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
           >
-            <div className="text-3xl mb-3">🔔</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Notifications</h3>
-            <p className="text-sm text-gray-600">Check messages and updates</p>
+            <div className="text-3xl mb-3">🧘</div>
+            <h3 className="font-semibold text-gray-900 mb-2">Mindfulness Tools</h3>
+            <p className="text-sm text-gray-600">Quick relaxation and breathing exercises</p>
           </button>
-          <button
-            onClick={() => onNavigate('classes')}
-            className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
-          >
-            <div className="text-3xl mb-3">🏫</div>
-            <h3 className="font-semibold text-gray-900 mb-2">My Classes</h3>
-            <p className="text-sm text-gray-600">View joined classes and join new ones</p>
-          </button>
-        </div>
-
-        {/* Subjects Grid */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">Choose a Subject to Study</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
-            {subjects.map((subject) => (
-              <button
-                key={subject}
-                onClick={() => onNavigate('chat', subject)}
-                className="bg-gray-50 hover:bg-indigo-50 border border-gray-200 hover:border-indigo-300 p-4 rounded-xl transition-all duration-200 transform hover:scale-105 text-center"
-              >
-                <div className="text-3xl mb-2">
-                  {subject === 'math' && '🧮'}
-                  {subject === 'physics' && '⚡'}
-                  {subject === 'chemistry' && '🧪'}
-                  {subject === 'biology' && '🧬'}
-                  {subject === 'english' && '📖'}
-                  {subject === 'history' && '🏛️'}
-                  {subject === 'geography' && '🌍'}
-                </div>
-                <div className="font-medium capitalize text-gray-900">{subject}</div>
-              </button>
-            ))}
-          </div>
         </div>
 
         {/* Today's Schedule */}
