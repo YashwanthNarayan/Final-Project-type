@@ -3079,6 +3079,14 @@ function App() {
     return <MyClassesComponent student={user} onNavigate={navigate} />;
   }
 
+  if (currentView === 'unified-classes') {
+    return <UnifiedClassInterface student={user} onNavigate={navigate} />;
+  }
+
+  if (currentView === 'project-tara') {
+    return <ProjectTaraComponent student={user} onNavigate={navigate} />;
+  }
+
   // Other views coming soon
   return <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
     <div className="text-center">
