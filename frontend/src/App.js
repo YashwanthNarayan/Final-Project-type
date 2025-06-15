@@ -1647,6 +1647,159 @@ const MyClassesComponent = ({ student, onNavigate }) => {
 };
 
 // Student Dashboard Component
+// Smart Assistant Component
+const SmartAssistant = ({ student, dashboardData }) => {
+  const [query, setQuery] = useState('');
+  const [response, setResponse] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [studyTime, setStudyTime] = useState('');
+  const [showStudyPlan, setShowStudyPlan] = useState(false);
+  const [studyPlan, setStudyPlan] = useState('');
+
+  const prePrompts = [
+    "What does my day look like?",
+    "What exams are coming up?",
+    "Any assignments due soon?",
+    "How am I performing in my studies?",
+    "What should I focus on today?",
+    "Show my progress this week"
+  ];
+
+  const askAssistant = async (promptText = null) => {
+    const queryText = promptText || query;
+    if (!queryText.trim()) return;
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE}/api/assistant/query`, {
+        query: queryText
+      });
+      setResponse(response.data.response);
+      if (!promptText) setQuery('');
+    } catch (error) {
+      console.error('Error asking assistant:', error);
+      setResponse('Sorry, I encountered an error. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const createStudyPlan = async () => {
+    if (!studyTime || studyTime <= 0) return;
+
+    setIsLoading(true);
+    try {
+      const response = await axios.post(`${API_BASE}/api/assistant/study-plan`, {
+        available_time: parseInt(studyTime)
+      });
+      setStudyPlan(response.data.study_plan);
+      setShowStudyPlan(true);
+    } catch (error) {
+      console.error('Error creating study plan:', error);
+      setStudyPlan('Sorry, I couldn\'t create a study plan right now. Please try again.');
+      setShowStudyPlan(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+      <div className="flex items-center mb-4">
+        <div className="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center mr-3">
+          <span className="text-white font-bold">🤖</span>
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-900">Your Smart Assistant</h3>
+          <p className="text-gray-600 text-sm">Ask me anything about your studies, schedule, or progress!</p>
+        </div>
+      </div>
+
+      {/* Pre-prompts */}
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 mb-2">Quick questions:</p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          {prePrompts.map((prompt, index) => (
+            <button
+              key={index}
+              onClick={() => askAssistant(prompt)}
+              className="text-xs bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 px-3 py-2 rounded-lg transition-colors"
+              disabled={isLoading}
+            >
+              {prompt}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Query Input */}
+      <div className="flex space-x-2 mb-4">
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && askAssistant()}
+          placeholder="Ask me anything about your studies..."
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          disabled={isLoading}
+        />
+        <button
+          onClick={() => askAssistant()}
+          disabled={isLoading || !query.trim()}
+          className="bg-indigo-500 text-white px-4 py-2 rounded-lg hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+        >
+          {isLoading ? '...' : 'Ask'}
+        </button>
+      </div>
+
+      {/* Study Time Input */}
+      <div className="flex space-x-2 mb-4">
+        <input
+          type="number"
+          value={studyTime}
+          onChange={(e) => setStudyTime(e.target.value)}
+          placeholder="I have ___ minutes to study"
+          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+          disabled={isLoading}
+          min="15"
+          max="480"
+        />
+        <button
+          onClick={createStudyPlan}
+          disabled={isLoading || !studyTime}
+          className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 disabled:opacity-50 transition-colors"
+        >
+          Plan My Study
+        </button>
+      </div>
+
+      {/* Response */}
+      {(response || studyPlan) && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-start space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-sm">🤖</span>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm text-gray-900 whitespace-pre-wrap">
+                {showStudyPlan ? studyPlan : response}
+              </div>
+              {showStudyPlan && (
+                <button
+                  onClick={() => setShowStudyPlan(false)}
+                  className="text-indigo-600 hover:text-indigo-700 text-sm mt-2"
+                >
+                  ← Back to assistant
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
   const subjects = ['math', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography'];
 
@@ -1666,13 +1819,25 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              {/* Notification Icon */}
+              <button
+                onClick={() => onNavigate('notifications')}
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <span className="text-xl">🔔</span>
+                {dashboardData?.notifications?.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {dashboardData.notifications.length}
+                  </span>
+                )}
+              </button>
               <div className="text-right hidden sm:block">
                 <div className="text-sm font-medium text-gray-900">{student?.name}</div>
                 <div className="text-xs text-gray-600">Grade {student?.grade_level}</div>
               </div>
               <button
                 onClick={onLogout}
-                className="text-gray-600 hover:text-gray-900 text-sm"
+                className="text-gray-600 hover:text-gray-900 text-sm hover:bg-gray-100 px-3 py-2 rounded-lg transition-colors"
               >
                 Logout
               </button>
@@ -1696,8 +1861,11 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
           </div>
         </div>
 
+        {/* Smart Assistant - Prominent Placement */}
+        <SmartAssistant student={student} dashboardData={dashboardData} />
+
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="bg-white rounded-xl p-6 shadow-md">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mr-4">
@@ -1728,17 +1896,6 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
               <div>
                 <div className="text-2xl font-bold text-gray-900">{dashboardData?.profile?.level || 1}</div>
                 <div className="text-sm text-gray-600">Current Level</div>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="flex items-center">
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mr-4">
-                <span className="text-2xl">🔔</span>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-gray-900">{dashboardData?.notifications?.length || 0}</div>
-                <div className="text-sm text-gray-600">New Notifications</div>
               </div>
             </div>
           </div>
