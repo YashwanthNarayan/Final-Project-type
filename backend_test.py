@@ -1094,11 +1094,230 @@ class TestProjectKV3BackendFocusedIssues(unittest.TestCase):
             print(f"❌ JWT validation test failed: {str(e)}")
             self.fail(f"JWT validation test failed: {str(e)}")
 
+class TestSmartAssistantAPI(unittest.TestCase):
+    """Test cases for Smart Assistant API endpoints"""
+
+    def setUp(self):
+        """Set up test case - create student account"""
+        self.student_token = None
+        self.student_id = None
+        
+        # Register student
+        self.register_student()
+
+    def register_student(self):
+        """Register a student for testing"""
+        print("\n🔍 Setting up student account for Smart Assistant tests...")
+        url = f"{API_URL}/auth/register"
+        payload = {
+            "email": f"student_smart_{uuid.uuid4()}@example.com",
+            "password": "SecurePass123!",
+            "name": "Aisha Khan",
+            "user_type": UserType.STUDENT.value,
+            "grade_level": GradeLevel.GRADE_10.value
+        }
+        
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                self.student_token = data.get("access_token")
+                self.student_id = data.get("user", {}).get("id")
+                print(f"Registered student with ID: {self.student_id}")
+            else:
+                print(f"Failed to register student: {response.status_code} - {response.text}")
+        except Exception as e:
+            print(f"Error registering student: {str(e)}")
+
+    def test_01_assistant_query(self):
+        """Test the /api/assistant/query endpoint"""
+        print("\n🔍 Testing Smart Assistant Query Endpoint...")
+        
+        if not self.student_token:
+            self.skipTest("Student token not available")
+        
+        url = f"{API_URL}/assistant/query"
+        headers = {"Authorization": f"Bearer {self.student_token}"}
+        payload = {
+            "query": "What does my day look like?"
+        }
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            print(f"Smart Assistant Query Response: {response.status_code}")
+            
+            self.assertEqual(response.status_code, 200, "Smart Assistant query should return 200")
+            data = response.json()
+            
+            # Verify the structure of the response
+            self.assertIn("response", data, "Response field should be present")
+            self.assertIn("timestamp", data, "Timestamp field should be present")
+            
+            # Verify the response is not empty
+            self.assertTrue(len(data.get("response", "")) > 0, "Response should not be empty")
+            
+            print(f"Smart Assistant response preview: {data.get('response')[:100]}...")
+            print("✅ Smart Assistant query test passed")
+        except Exception as e:
+            print(f"❌ Smart Assistant query test failed: {str(e)}")
+            self.fail(f"Smart Assistant query test failed: {str(e)}")
+            
+    def test_02_study_plan(self):
+        """Test the /api/assistant/study-plan endpoint"""
+        print("\n🔍 Testing Smart Assistant Study Plan Endpoint...")
+        
+        if not self.student_token:
+            self.skipTest("Student token not available")
+        
+        url = f"{API_URL}/assistant/study-plan"
+        headers = {"Authorization": f"Bearer {self.student_token}"}
+        payload = {
+            "available_time": 60  # 60 minutes
+        }
+        
+        try:
+            response = requests.post(url, json=payload, headers=headers)
+            print(f"Smart Assistant Study Plan Response: {response.status_code}")
+            
+            self.assertEqual(response.status_code, 200, "Smart Assistant study plan should return 200")
+            data = response.json()
+            
+            # Verify the structure of the response
+            self.assertIn("study_plan", data, "Study plan field should be present")
+            self.assertIn("timestamp", data, "Timestamp field should be present")
+            self.assertIn("available_time", data, "Available time field should be present")
+            
+            # Verify the study plan is not empty
+            self.assertTrue(len(data.get("study_plan", "")) > 0, "Study plan should not be empty")
+            self.assertEqual(data.get("available_time"), 60, "Available time should match the request")
+            
+            print(f"Study plan preview: {data.get('study_plan')[:100]}...")
+            print("✅ Smart Assistant study plan test passed")
+        except Exception as e:
+            print(f"❌ Smart Assistant study plan test failed: {str(e)}")
+            self.fail(f"Smart Assistant study plan test failed: {str(e)}")
+            
+    def test_03_dashboard_context(self):
+        """Test the /api/assistant/dashboard-context endpoint"""
+        print("\n🔍 Testing Smart Assistant Dashboard Context Endpoint...")
+        
+        if not self.student_token:
+            self.skipTest("Student token not available")
+        
+        url = f"{API_URL}/assistant/dashboard-context"
+        headers = {"Authorization": f"Bearer {self.student_token}"}
+        
+        try:
+            response = requests.get(url, headers=headers)
+            print(f"Smart Assistant Dashboard Context Response: {response.status_code}")
+            
+            self.assertEqual(response.status_code, 200, "Smart Assistant dashboard context should return 200")
+            data = response.json()
+            
+            # Verify the structure of the response
+            self.assertIn("student_name", data, "Student name field should be present")
+            self.assertIn("level", data, "Level field should be present")
+            self.assertIn("xp", data, "XP field should be present")
+            self.assertIn("streak", data, "Streak field should be present")
+            self.assertIn("today_events_count", data, "Today events count field should be present")
+            self.assertIn("unread_notifications", data, "Unread notifications field should be present")
+            self.assertIn("upcoming_events_count", data, "Upcoming events count field should be present")
+            self.assertIn("classes_count", data, "Classes count field should be present")
+            
+            # Verify the student name matches
+            self.assertEqual(data.get("student_name"), "Aisha Khan", "Student name should match")
+            
+            print(f"Dashboard context: Level {data.get('level')}, XP {data.get('xp')}, Streak {data.get('streak')} days")
+            print("✅ Smart Assistant dashboard context test passed")
+        except Exception as e:
+            print(f"❌ Smart Assistant dashboard context test failed: {str(e)}")
+            self.fail(f"Smart Assistant dashboard context test failed: {str(e)}")
+            
+    def test_04_unauthorized_access(self):
+        """Test that Smart Assistant endpoints require authentication"""
+        print("\n🔍 Testing Smart Assistant Endpoints Authentication Requirements...")
+        
+        # Test each endpoint without authentication
+        endpoints = [
+            {"method": "post", "url": f"{API_URL}/assistant/query", "payload": {"query": "Test"}},
+            {"method": "post", "url": f"{API_URL}/assistant/study-plan", "payload": {"available_time": 60}},
+            {"method": "get", "url": f"{API_URL}/assistant/dashboard-context", "payload": None}
+        ]
+        
+        for endpoint in endpoints:
+            try:
+                if endpoint["method"] == "post":
+                    response = requests.post(endpoint["url"], json=endpoint["payload"])
+                else:
+                    response = requests.get(endpoint["url"])
+                
+                print(f"Unauthorized access to {endpoint['url']}: {response.status_code}")
+                
+                # All endpoints should require authentication
+                self.assertEqual(response.status_code, 401, f"Endpoint {endpoint['url']} should require authentication")
+            except Exception as e:
+                print(f"❌ Authentication test failed for {endpoint['url']}: {str(e)}")
+                self.fail(f"Authentication test failed: {str(e)}")
+        
+        print("✅ All Smart Assistant endpoints properly require authentication")
+        
+    def test_05_teacher_access_denied(self):
+        """Test that Smart Assistant endpoints deny teacher access"""
+        print("\n🔍 Testing Smart Assistant Endpoints Teacher Access Denial...")
+        
+        # Register a teacher
+        url = f"{API_URL}/auth/register"
+        payload = {
+            "email": f"teacher_smart_{uuid.uuid4()}@example.com",
+            "password": "SecurePass123!",
+            "name": "Vikram Mehta",
+            "user_type": UserType.TEACHER.value,
+            "school_name": "Delhi Public School"
+        }
+        
+        try:
+            response = requests.post(url, json=payload)
+            if response.status_code != 200:
+                self.skipTest("Failed to register teacher")
+                
+            data = response.json()
+            teacher_token = data.get("access_token")
+            
+            # Test each endpoint with teacher authentication
+            endpoints = [
+                {"method": "post", "url": f"{API_URL}/assistant/query", "payload": {"query": "Test"}},
+                {"method": "post", "url": f"{API_URL}/assistant/study-plan", "payload": {"available_time": 60}},
+                {"method": "get", "url": f"{API_URL}/assistant/dashboard-context", "payload": None}
+            ]
+            
+            for endpoint in endpoints:
+                headers = {"Authorization": f"Bearer {teacher_token}"}
+                
+                if endpoint["method"] == "post":
+                    response = requests.post(endpoint["url"], json=endpoint["payload"], headers=headers)
+                else:
+                    response = requests.get(endpoint["url"], headers=headers)
+                
+                print(f"Teacher access to {endpoint['url']}: {response.status_code}")
+                
+                # All endpoints should deny teacher access
+                self.assertEqual(response.status_code, 403, f"Endpoint {endpoint['url']} should deny teacher access")
+            
+            print("✅ All Smart Assistant endpoints properly deny teacher access")
+        except Exception as e:
+            print(f"❌ Teacher access test failed: {str(e)}")
+            self.fail(f"Teacher access test failed: {str(e)}")
+
 if __name__ == "__main__":
     # Run the V3 tests
     print("\n==== TESTING PROJECT K V3 BACKEND ====\n")
     
-    # First run the focused tests for the issues in the test plan
+    # First run the Smart Assistant API tests
+    print("\n==== RUNNING SMART ASSISTANT API TESTS ====\n")
+    smart_assistant_suite = unittest.TestLoader().loadTestsFromTestCase(TestSmartAssistantAPI)
+    smart_assistant_result = unittest.TextTestRunner().run(smart_assistant_suite)
+    
+    # Then run the focused tests for the issues in the test plan
     print("\n==== RUNNING FOCUSED TESTS FOR IDENTIFIED ISSUES ====\n")
     focused_suite = unittest.TestLoader().loadTestsFromTestCase(TestProjectKV3BackendFocusedIssues)
     focused_result = unittest.TextTestRunner().run(focused_suite)
