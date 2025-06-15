@@ -1082,6 +1082,94 @@ async def get_chat_history(subject: Optional[str] = None, token_data: dict = Dep
     messages = await db.chat_messages.find(query).sort("timestamp", 1).to_list(1000)
     return [ChatMessage(**message) for message in messages]
 
+# Smart Assistant Routes
+@api_router.post("/assistant/query")
+async def ask_smart_assistant(query_data: Dict[str, Any], token_data: dict = Depends(verify_token)):
+    """Ask the smart assistant a general query"""
+    try:
+        if token_data.get('user_type') != 'student':
+            raise HTTPException(status_code=403, detail="Student access required")
+        
+        # Get comprehensive student context
+        context = await smart_assistant.get_comprehensive_student_context(token_data['sub'])
+        
+        # Get the response from smart assistant
+        response = await smart_assistant.answer_general_query(
+            token_data['sub'], 
+            query_data['query'], 
+            context
+        )
+        
+        # Award XP for using the assistant
+        await award_xp(token_data['sub'], 3, "Used Smart Assistant")
+        
+        return {
+            "response": response,
+            "timestamp": datetime.utcnow()
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in smart assistant query: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Assistant error: {str(e)}")
+
+@api_router.post("/assistant/study-plan")
+async def create_study_plan(plan_data: Dict[str, Any], token_data: dict = Depends(verify_token)):
+    """Create a personalized study plan"""
+    try:
+        if token_data.get('user_type') != 'student':
+            raise HTTPException(status_code=403, detail="Student access required")
+        
+        # Get comprehensive student context
+        context = await smart_assistant.get_comprehensive_student_context(token_data['sub'])
+        
+        # Create study plan
+        study_plan = await smart_assistant.create_study_plan(
+            token_data['sub'],
+            plan_data.get('available_time', 60),  # Default 60 minutes
+            context
+        )
+        
+        # Award XP for creating a study plan
+        await award_xp(token_data['sub'], 10, "Created a study plan")
+        
+        return {
+            "study_plan": study_plan,
+            "timestamp": datetime.utcnow(),
+            "available_time": plan_data.get('available_time', 60)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error creating study plan: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Study plan error: {str(e)}")
+
+@api_router.get("/assistant/dashboard-context")
+async def get_dashboard_context(token_data: dict = Depends(verify_token)):
+    """Get context for the dashboard assistant"""
+    try:
+        if token_data.get('user_type') != 'student':
+            raise HTTPException(status_code=403, detail="Student access required")
+        
+        context = await smart_assistant.get_comprehensive_student_context(token_data['sub'])
+        
+        # Create a summary for the dashboard
+        summary = {
+            "student_name": context['profile']['name'] if context['profile'] else 'Student',
+            "level": context['profile']['level'] if context['profile'] else 1,
+            "xp": context['profile']['total_xp'] if context['profile'] else 0,
+            "streak": context['profile']['streak_days'] if context['profile'] else 0,
+            "today_events_count": len([e for e in context['upcoming_events'] 
+                                     if datetime.fromisoformat(e['start_time'].replace('Z', '+00:00')).date() == datetime.utcnow().date()]),
+            "unread_notifications": len(context['unread_notifications']),
+            "upcoming_events_count": len(context['upcoming_events']),
+            "classes_count": len(context['classes'])
+        }
+        
+        return summary
+        
+    except Exception as e:
+        logger.error(f"Error getting dashboard context: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Dashboard context error: {str(e)}")
+
 # Practice Test Routes
 @api_router.post("/practice/generate")
 async def generate_practice_test(request: PracticeTestRequest, token_data: dict = Depends(verify_token)):
