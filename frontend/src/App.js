@@ -254,7 +254,19 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
       setTimeLeft(questionCount * 120); // 2 minutes per question
     } catch (error) {
       console.error('Error generating test:', error);
-      alert('Error generating test. Please try again.');
+      console.error('Error details:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      let errorMessage = 'Error generating test. Please try again.';
+      if (error.response?.status === 401) {
+        errorMessage = 'Please log in to generate practice tests.';
+      } else if (error.response?.status === 422) {
+        errorMessage = 'Invalid test parameters. Please check your selections.';
+      } else if (error.response?.data?.detail) {
+        errorMessage = `Error: ${error.response.data.detail}`;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsGenerating(false);
     }
