@@ -238,6 +238,12 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
   const generateTest = async () => {
     if (!selectedSubject || selectedTopics.length === 0) return;
     
+    // Debug authentication
+    const token = localStorage.getItem('access_token');
+    console.log('Debug - Token exists:', !!token);
+    console.log('Debug - Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
+    console.log('Debug - Authorization header:', axios.defaults.headers.common['Authorization']);
+    
     setIsGenerating(true);
     try {
       const response = await axios.post(`${API_BASE}/api/practice/generate`, {
