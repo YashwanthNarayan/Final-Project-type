@@ -873,6 +873,9 @@ const MindfulnessComponent = ({ student, onNavigate }) => {
 const ProgressTracker = ({ student, onNavigate }) => {
   const [dashboardData, setDashboardData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedSubject, setSelectedSubject] = useState(null);
+  const [subjectStats, setSubjectStats] = useState(null);
+  const [subjectLoading, setSubjectLoading] = useState(false);
 
   useEffect(() => {
     loadProgressData();
@@ -887,6 +890,31 @@ const ProgressTracker = ({ student, onNavigate }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const loadSubjectStats = async (subject) => {
+    setSubjectLoading(true);
+    try {
+      const [statsResponse, resultsResponse] = await Promise.all([
+        axios.get(`${API_BASE}/api/practice/stats/${subject}`),
+        axios.get(`${API_BASE}/api/practice/results?subject=${subject}`)
+      ]);
+      
+      setSubjectStats({
+        ...statsResponse.data,
+        all_results: resultsResponse.data
+      });
+    } catch (error) {
+      console.error('Error loading subject stats:', error);
+      setSubjectStats(null);
+    } finally {
+      setSubjectLoading(false);
+    }
+  };
+
+  const handleSubjectClick = (subject) => {
+    setSelectedSubject(subject);
+    loadSubjectStats(subject);
   };
 
   const subjects = ['math', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography'];
