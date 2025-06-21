@@ -1163,7 +1163,13 @@ const ProgressTracker = ({ student, onNavigate }) => {
               const progress = getSubjectProgress(subject);
               const isStudied = dashboardData?.subjects_progress?.includes(subject);
               return (
-                <div key={subject} className={`flex items-center space-x-4 p-4 rounded-lg ${isStudied ? 'bg-green-50' : 'bg-gray-50'}`}>
+                <button
+                  key={subject}
+                  onClick={() => handleSubjectClick(subject)}
+                  className={`w-full flex items-center space-x-4 p-4 rounded-lg transition-all duration-200 hover:shadow-md transform hover:scale-[1.02] ${
+                    isStudied ? 'bg-green-50 hover:bg-green-100' : 'bg-gray-50 hover:bg-gray-100'
+                  }`}
+                >
                   <div className="w-12 text-2xl">
                     {subject === 'math' && '🧮'}
                     {subject === 'physics' && '⚡'}
@@ -1173,12 +1179,13 @@ const ProgressTracker = ({ student, onNavigate }) => {
                     {subject === 'history' && '🏛️'}
                     {subject === 'geography' && '🌍'}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 text-left">
                     <div className="flex justify-between items-center mb-1">
                       <span className="font-medium capitalize">{subject}</span>
                       <div className="flex items-center">
                         {isStudied && <span className="text-green-600 text-sm mr-2">✓ Studied</span>}
                         <span className="text-sm text-gray-600">{progress.toFixed(0)}%</span>
+                        <span className="ml-2 text-indigo-600">→</span>
                       </div>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-3">
@@ -1190,9 +1197,12 @@ const ProgressTracker = ({ student, onNavigate }) => {
                       ></div>
                     </div>
                   </div>
-                </div>
+                </button>
               );
             })}
+          </div>
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-600">👆 Click on any subject to view detailed progress and practice test results</p>
           </div>
         </div>
 
