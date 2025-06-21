@@ -956,6 +956,155 @@ const ProgressTracker = ({ student, onNavigate }) => {
     );
   }
 
+  // Subject-specific view
+  if (selectedSubject) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex items-center mb-8">
+            <button
+              onClick={() => setSelectedSubject(null)}
+              className="text-indigo-600 hover:text-indigo-700 mr-4"
+            >
+              ← Back to All Subjects
+            </button>
+            <div className="flex items-center">
+              <div className="text-4xl mr-4">
+                {selectedSubject === 'math' && '🧮'}
+                {selectedSubject === 'physics' && '⚡'}
+                {selectedSubject === 'chemistry' && '🧪'}
+                {selectedSubject === 'biology' && '🧬'}
+                {selectedSubject === 'english' && '📖'}
+                {selectedSubject === 'history' && '🏛️'}
+                {selectedSubject === 'geography' && '🌍'}
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 capitalize">{selectedSubject} Progress</h1>
+                <p className="text-gray-600">Detailed progress and practice test results</p>
+              </div>
+            </div>
+          </div>
+
+          {subjectLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : subjectStats ? (
+            <div className="space-y-6">
+              {/* Subject Statistics */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Practice Test Statistics</h2>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-indigo-600 mb-2">{subjectStats.total_tests}</div>
+                    <div className="text-gray-600">Tests Taken</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-green-600 mb-2">{subjectStats.average_score.toFixed(1)}%</div>
+                    <div className="text-gray-600">Average Score</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-blue-600 mb-2">{subjectStats.best_score.toFixed(1)}%</div>
+                    <div className="text-gray-600">Best Score</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-4xl font-bold text-purple-600 mb-2">{subjectStats.total_questions_answered}</div>
+                    <div className="text-gray-600">Questions Answered</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Practice Tests */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Practice Test History</h2>
+                {subjectStats.all_results.length === 0 ? (
+                  <div className="text-center py-8 text-gray-500">
+                    <div className="text-4xl mb-2">📝</div>
+                    <p>No practice tests taken for {selectedSubject} yet.</p>
+                    <button
+                      onClick={() => onNavigate('practice')}
+                      className="mt-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+                    >
+                      Take Your First Test
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {subjectStats.all_results.slice(0, 10).map((result, index) => (
+                      <div key={result.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-4">
+                          <div className="text-2xl">
+                            {result.score >= 80 && '🏆'}
+                            {result.score >= 60 && result.score < 80 && '🥉'}
+                            {result.score < 60 && '📝'}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">
+                              Test #{subjectStats.all_results.length - index}
+                            </div>
+                            <div className="text-sm text-gray-600">
+                              {new Date(result.completed_at).toLocaleDateString()} • 
+                              {Math.floor(result.time_taken / 60)}m {result.time_taken % 60}s • 
+                              {result.difficulty.charAt(0).toUpperCase() + result.difficulty.slice(1)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            result.score >= 80 ? 'text-green-600' : 
+                            result.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                          }`}>
+                            {result.score.toFixed(1)}%
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            {result.correct_answers}/{result.total_questions} correct
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {subjectStats.all_results.length > 10 && (
+                      <div className="text-center py-4">
+                        <p className="text-gray-600">
+                          Showing 10 most recent tests out of {subjectStats.all_results.length} total
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Quick Actions */}
+              <div className="bg-white rounded-2xl shadow-lg p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    onClick={() => onNavigate('practice')}
+                    className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+                  >
+                    <span className="text-2xl">📝</span>
+                    <span>Take New Practice Test</span>
+                  </button>
+                  <button
+                    onClick={() => onNavigate('chat', selectedSubject)}
+                    className="flex items-center justify-center space-x-3 p-4 bg-gradient-to-r from-green-500 to-blue-600 text-white rounded-lg hover:from-green-600 hover:to-blue-700 transition-all"
+                  >
+                    <span className="text-2xl">🤖</span>
+                    <span>Chat with {selectedSubject.charAt(0).toUpperCase() + selectedSubject.slice(1)} Tutor</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No data available for this subject.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
       <div className="max-w-6xl mx-auto">
