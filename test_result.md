@@ -270,6 +270,36 @@ backend:
         agent: "testing"
         comment: "Conducted comprehensive testing of the practice test generation functionality. Verified that the API correctly enforces validation rules (question_count must be between 5 and 50). Tested with different subjects and difficulty levels. Found a potential issue with numerical answers sometimes being returned as integers instead of strings, which can cause validation errors, but this appears to be handled correctly in most cases. The JSON parsing in PracticeTestBot.generate_practice_questions is working properly for all tested subjects."
 
+  - task: "Practice Test Results API"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented practice test results API endpoint to retrieve student's practice test history with optional subject filtering."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested the /api/practice/results endpoint. The endpoint correctly returns all practice test results when no subject filter is provided, and properly filters results by subject when a subject parameter is included. Each result contains the expected fields: id, subject, score, correct_answers, total_questions, time_taken, completed_at, and difficulty. Authentication is properly enforced, returning 401 for unauthenticated requests."
+
+  - task: "Practice Test Statistics API"
+    implemented: true
+    working: true
+    file: "backend/server.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: "NA"
+        agent: "main"
+        comment: "Implemented practice test statistics API endpoint to provide aggregated statistics for a specific subject."
+      - working: true
+        agent: "testing"
+        comment: "Successfully tested the /api/practice/stats/{subject} endpoint. The endpoint correctly returns statistics for the specified subject including total_tests, average_score, best_score, total_questions_answered, total_time_spent, and recent_tests. The endpoint properly handles subjects with no practice tests by returning appropriate zero values. Authentication is properly enforced, returning 401 for unauthenticated requests."
+
   - task: "Teacher Dashboard"
     implemented: true
     working: true
