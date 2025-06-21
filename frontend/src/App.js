@@ -876,6 +876,8 @@ const ProgressTracker = ({ student, onNavigate }) => {
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [subjectStats, setSubjectStats] = useState(null);
   const [subjectLoading, setSubjectLoading] = useState(false);
+  const [expandedTest, setExpandedTest] = useState(null);
+  const [testDetails, setTestDetails] = useState({});
 
   useEffect(() => {
     loadProgressData();
@@ -912,9 +914,31 @@ const ProgressTracker = ({ student, onNavigate }) => {
     }
   };
 
+  const loadTestDetails = async (resultId) => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/practice/results/${resultId}/details`);
+      setTestDetails(prev => ({ ...prev, [resultId]: response.data }));
+    } catch (error) {
+      console.error('Error loading test details:', error);
+    }
+  };
+
   const handleSubjectClick = (subject) => {
     setSelectedSubject(subject);
+    setExpandedTest(null);
+    setTestDetails({});
     loadSubjectStats(subject);
+  };
+
+  const toggleTestExpansion = (testId) => {
+    if (expandedTest === testId) {
+      setExpandedTest(null);
+    } else {
+      setExpandedTest(testId);
+      if (!testDetails[testId]) {
+        loadTestDetails(testId);
+      }
+    }
   };
 
   const subjects = ['math', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography'];
