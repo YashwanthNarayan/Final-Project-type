@@ -295,11 +295,17 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
 
   const submitTest = async () => {
     try {
+      const token = localStorage.getItem('access_token');
       const response = await axios.post(`${API_BASE}/api/practice/submit`, {
         test_id: currentTest.test_id,
         questions: currentTest.questions.map(q => q.id),
         student_answers: userAnswers,
         time_taken: (questionCount * 120) - timeLeft
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       setTestResults(response.data);
