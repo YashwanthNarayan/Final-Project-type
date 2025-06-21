@@ -1055,35 +1055,147 @@ const ProgressTracker = ({ student, onNavigate }) => {
                 ) : (
                   <div className="space-y-4">
                     {subjectStats.all_results.slice(0, 10).map((result, index) => (
-                      <div key={result.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center space-x-4">
-                          <div className="text-2xl">
-                            {result.score >= 80 && '🏆'}
-                            {result.score >= 60 && result.score < 80 && '🥉'}
-                            {result.score < 60 && '📝'}
-                          </div>
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              Test #{subjectStats.all_results.length - index}
+                      <div key={result.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                        {/* Test Summary */}
+                        <button
+                          onClick={() => toggleTestExpansion(result.id)}
+                          className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <div className="text-2xl">
+                              {result.score >= 80 && '🏆'}
+                              {result.score >= 60 && result.score < 80 && '🥉'}
+                              {result.score < 60 && '📝'}
                             </div>
-                            <div className="text-sm text-gray-600">
-                              {new Date(result.completed_at).toLocaleDateString()} • 
-                              {Math.floor(result.time_taken / 60)}m {result.time_taken % 60}s • 
-                              {result.difficulty.charAt(0).toUpperCase() + result.difficulty.slice(1)}
+                            <div className="text-left">
+                              <div className="font-medium text-gray-900">
+                                Test #{subjectStats.all_results.length - index}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {new Date(result.completed_at).toLocaleDateString()} • 
+                                {Math.floor(result.time_taken / 60)}m {result.time_taken % 60}s • 
+                                {result.difficulty.charAt(0).toUpperCase() + result.difficulty.slice(1)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <div className={`text-2xl font-bold ${
-                            result.score >= 80 ? 'text-green-600' : 
-                            result.score >= 60 ? 'text-yellow-600' : 'text-red-600'
-                          }`}>
-                            {result.score.toFixed(1)}%
+                          <div className="flex items-center space-x-4">
+                            <div className="text-right">
+                              <div className={`text-2xl font-bold ${
+                                result.score >= 80 ? 'text-green-600' : 
+                                result.score >= 60 ? 'text-yellow-600' : 'text-red-600'
+                              }`}>
+                                {result.score.toFixed(1)}%
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                {result.correct_count}/{result.total_questions} correct
+                              </div>
+                            </div>
+                            <div className="text-gray-400">
+                              {expandedTest === result.id ? '▼' : '▶'}
+                            </div>
                           </div>
-                          <div className="text-sm text-gray-600">
-                            {result.correct_answers}/{result.total_questions} correct
+                        </button>
+
+                        {/* Detailed Question Breakdown */}
+                        {expandedTest === result.id && (
+                          <div className="border-t border-gray-200 bg-white">
+                            {testDetails[result.id] ? (
+                              <div className="p-6">
+                                <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                                  Question Breakdown
+                                </h4>
+                                <div className="space-y-4">
+                                  {testDetails[result.id].question_details.map((question, qIndex) => (
+                                    <div 
+                                      key={question.question_id}
+                                      className={`p-4 rounded-lg border-l-4 ${
+                                        question.is_correct 
+                                          ? 'border-green-500 bg-green-50' 
+                                          : 'border-red-500 bg-red-50'
+                                      }`}
+                                    >
+                                      <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-2">
+                                          <span className="text-sm font-medium text-gray-600">
+                                            Question {qIndex + 1}
+                                          </span>
+                                          <span className={`text-sm px-2 py-1 rounded ${
+                                            question.is_correct 
+                                              ? 'bg-green-100 text-green-800' 
+                                              : 'bg-red-100 text-red-800'
+                                          }`}>
+                                            {question.is_correct ? '✓ Correct' : '✗ Incorrect'}
+                                          </span>
+                                        </div>
+                                        <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded capitalize">
+                                          {question.question_type.replace('_', ' ')}
+                                        </span>
+                                      </div>
+                                      
+                                      <div className="mb-3">
+                                        <p className="text-gray-900 font-medium mb-2">
+                                          {question.question_text}
+                                        </p>
+                                        
+                                        {/* Show options for MCQ */}
+                                        {question.question_type === 'mcq' && question.options.length > 0 && (
+                                          <div className="ml-4 space-y-1">
+                                            {question.options.map((option, optIndex) => (
+                                              <div 
+                                                key={optIndex}
+                                                className={`text-sm p-2 rounded ${
+                                                  option === question.correct_answer ? 'bg-green-100 text-green-800 font-medium' :
+                                                  option === question.student_answer && !question.is_correct ? 'bg-red-100 text-red-800' :
+                                                  'text-gray-600'
+                                                }`}
+                                              >
+                                                {option}
+                                                {option === question.correct_answer && ' ← Correct Answer'}
+                                                {option === question.student_answer && option !== question.correct_answer && ' ← Your Answer'}
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      <div className="space-y-2 text-sm">
+                                        <div className="flex items-start space-x-2">
+                                          <span className="font-medium text-gray-700">Your Answer:</span>
+                                          <span className={question.is_correct ? 'text-green-700' : 'text-red-700'}>
+                                            {question.student_answer || 'No answer provided'}
+                                          </span>
+                                        </div>
+                                        
+                                        {!question.is_correct && (
+                                          <div className="flex items-start space-x-2">
+                                            <span className="font-medium text-gray-700">Correct Answer:</span>
+                                            <span className="text-green-700 font-medium">
+                                              {question.correct_answer}
+                                            </span>
+                                          </div>
+                                        )}
+                                        
+                                        {question.explanation && (
+                                          <div className="mt-3 p-3 bg-blue-50 rounded border-l-4 border-blue-400">
+                                            <div className="font-medium text-blue-800 mb-1">Explanation:</div>
+                                            <div className="text-blue-700 text-sm">
+                                              {question.explanation}
+                                            </div>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="p-6 text-center">
+                                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                                <p className="text-gray-600">Loading question details...</p>
+                              </div>
+                            )}
                           </div>
-                        </div>
+                        )}
                       </div>
                     ))}
                     
