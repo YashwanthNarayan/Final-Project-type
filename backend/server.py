@@ -961,6 +961,94 @@ async def submit_practice_test(test_data: Dict[str, Any], token_data: dict = Dep
         logger.error(f"Error submitting practice test: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error submitting practice test: {str(e)}")
 
+@api_router.get("/practice/results")
+async def get_practice_results(subject: Optional[str] = None, token_data: dict = Depends(verify_token)):
+    """Get practice test results for a student, optionally filtered by subject"""
+    try:
+        # Build query
+        query = {"student_id": token_data['sub']}
+        
+        # Get all practice attempts
+        attempts = await db.practice_attempts.find(query).sort("completed_at", -1).to_list(100)
+        
+        # For each attempt, get the questions to determine subject
+        results = []
+        for attempt in attempts:
+            if attempt.get('questions'):
+                # Get the first question to determine subject
+                first_question_id = attempt['questions'][0]
+                question = await db.practice_questions.find_one({"id": first_question_id})
+                
+                if question:
+                    attempt_subject = question.get('subject')
+                    
+                    # Filter by subject if specified
+                    if subject is None or attempt_subject == subject:
+                        result = {
+                            "id": attempt['id'],
+                            "subject": attempt_subject,
+                            "score": attempt['score'],
+                            "correct_answers": len([q_id for q_id, answer in attempt['student_answers'].items() 
+                                                   if await check_answer_correct(q_id, answer)]),
+                            "total_questions": len(attempt['questions']),
+                            "time_taken": attempt['time_taken'],
+                            "completed_at": attempt['completed_at'],
+                            "difficulty": question.get('difficulty', 'medium')
+                        }
+                        results.append(result)
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error fetching practice results: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching practice results: {str(e)}")
+
+async def check_answer_correct(question_id: str, student_answer: str) -> bool:
+    """Helper function to check if a student answer is correct"""
+    question = await db.practice_questions.find_one({"id": question_id})
+    if not question:
+        return False
+    return question['correct_answer'].lower().strip() == student_answer.lower().strip()
+
+@api_router.get("/practice/stats/{subject}")
+async def get_subject_practice_stats(subject: str, token_data: dict = Depends(verify_token)):
+    """Get detailed practice test statistics for a specific subject"""
+    try:
+        # Get all practice attempts for this subject
+        results = await get_practice_results(subject, token_data)
+        
+        if not results:
+            return {
+                "subject": subject,
+                "total_tests": 0,
+                "average_score": 0,
+                "best_score": 0,
+                "total_questions_answered": 0,
+                "total_time_spent": 0,
+                "recent_tests": []
+            }
+        
+        # Calculate statistics
+        scores = [r['score'] for r in results]
+        total_questions = sum(r['total_questions'] for r in results)
+        total_time = sum(r['time_taken'] for r in results)
+        
+        stats = {
+            "subject": subject,
+            "total_tests": len(results),
+            "average_score": sum(scores) / len(scores) if scores else 0,
+            "best_score": max(scores) if scores else 0,
+            "total_questions_answered": total_questions,
+            "total_time_spent": total_time,
+            "recent_tests": results[:10]  # Last 10 tests
+        }
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error fetching subject stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching subject stats: {str(e)}")
+
 # Mindfulness Routes
 @api_router.post("/mindfulness/session")
 async def start_mindfulness_session(session_data: Dict[str, Any], token_data: dict = Depends(verify_token)):
