@@ -971,29 +971,49 @@ async def get_practice_results(subject: Optional[str] = None, token_data: dict =
         # Get all practice attempts
         attempts = await db.practice_attempts.find(query).sort("completed_at", -1).to_list(100)
         
-        # For each attempt, get the questions to determine subject
+        # For each attempt, get the questions to determine subject and build detailed results
         results = []
         for attempt in attempts:
             if attempt.get('questions'):
-                # Get the first question to determine subject
-                first_question_id = attempt['questions'][0]
-                question = await db.practice_questions.find_one({"id": first_question_id})
+                # Get all questions for this attempt
+                question_ids = attempt['questions']
+                questions = await db.practice_questions.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
                 
-                if question:
-                    attempt_subject = question.get('subject')
+                if questions:
+                    attempt_subject = questions[0].get('subject')
                     
                     # Filter by subject if specified
                     if subject is None or attempt_subject == subject:
+                        # Build detailed question results
+                        question_results = []
+                        for question in questions:
+                            student_answer = attempt['student_answers'].get(question['id'], '')
+                            is_correct = question['correct_answer'].lower().strip() == student_answer.lower().strip()
+                            
+                            question_result = {
+                                "question_id": question['id'],
+                                "question_text": question['question_text'],
+                                "question_type": question['question_type'],
+                                "options": question.get('options', []),
+                                "student_answer": student_answer,
+                                "correct_answer": question['correct_answer'],
+                                "is_correct": is_correct,
+                                "explanation": question.get('explanation', ''),
+                                "topics": question.get('topics', [])
+                            }
+                            question_results.append(question_result)
+                        
                         result = {
                             "id": attempt['id'],
                             "subject": attempt_subject,
                             "score": attempt['score'],
-                            "correct_answers": len([q_id for q_id, answer in attempt['student_answers'].items() 
-                                                   if await check_answer_correct(q_id, answer)]),
                             "total_questions": len(attempt['questions']),
                             "time_taken": attempt['time_taken'],
                             "completed_at": attempt['completed_at'],
-                            "difficulty": question.get('difficulty', 'medium')
+                            "difficulty": questions[0].get('difficulty', 'medium'),
+                            "question_results": question_results,
+                            "correct_count": sum(1 for qr in question_results if qr['is_correct']),
+                            "incorrect_count": sum(1 for qr in question_results if not qr['is_correct'])
                         }
                         results.append(result)
         
@@ -1009,6 +1029,59 @@ async def check_answer_correct(question_id: str, student_answer: str) -> bool:
     if not question:
         return False
     return question['correct_answer'].lower().strip() == student_answer.lower().strip()
+
+@api_router.get("/practice/results/{result_id}/details")
+async def get_practice_result_details(result_id: str, token_data: dict = Depends(verify_token)):
+    """Get detailed breakdown of a specific practice test result"""
+    try:
+        # Get the practice attempt
+        attempt = await db.practice_attempts.find_one({"id": result_id, "student_id": token_data['sub']})
+        if not attempt:
+            raise HTTPException(status_code=404, detail="Practice test result not found")
+        
+        # Get all questions for this attempt
+        question_ids = attempt['questions']
+        questions = await db.practice_questions.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
+        
+        # Build detailed question breakdown
+        question_details = []
+        for question in questions:
+            student_answer = attempt['student_answers'].get(question['id'], '')
+            is_correct = question['correct_answer'].lower().strip() == student_answer.lower().strip()
+            
+            question_detail = {
+                "question_id": question['id'],
+                "question_text": question['question_text'],
+                "question_type": question['question_type'],
+                "options": question.get('options', []),
+                "student_answer": student_answer,
+                "correct_answer": question['correct_answer'],
+                "is_correct": is_correct,
+                "explanation": question.get('explanation', ''),
+                "topics": question.get('topics', []),
+                "difficulty": question.get('difficulty', 'medium')
+            }
+            question_details.append(question_detail)
+        
+        result = {
+            "id": attempt['id'],
+            "subject": questions[0].get('subject') if questions else 'unknown',
+            "score": attempt['score'],
+            "total_questions": len(attempt['questions']),
+            "correct_count": sum(1 for qd in question_details if qd['is_correct']),
+            "incorrect_count": sum(1 for qd in question_details if not qd['is_correct']),
+            "time_taken": attempt['time_taken'],
+            "completed_at": attempt['completed_at'],
+            "question_details": question_details
+        }
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching practice result details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching result details: {str(e)}")
 
 @api_router.get("/practice/stats/{subject}")
 async def get_subject_practice_stats(subject: str, token_data: dict = Depends(verify_token)):
