@@ -238,19 +238,34 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
   const generateTest = async () => {
     if (!selectedSubject || selectedTopics.length === 0) return;
     
-    // Debug authentication
+    // Ensure authentication token is set
     const token = localStorage.getItem('access_token');
+    if (!token) {
+      alert('Please log in to generate practice tests.');
+      return;
+    }
+    
+    // Force set the authorization header for this request
+    setupAxiosAuth(token);
+    
+    // Debug authentication
     console.log('Debug - Token exists:', !!token);
     console.log('Debug - Token preview:', token ? token.substring(0, 20) + '...' : 'No token');
     console.log('Debug - Authorization header:', axios.defaults.headers.common['Authorization']);
     
     setIsGenerating(true);
     try {
+      // Explicitly include the authorization header in this request
       const response = await axios.post(`${API_BASE}/api/practice/generate`, {
         subject: selectedSubject,
         topics: selectedTopics,
         difficulty: difficulty,
         question_count: questionCount
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       setCurrentTest(response.data);
