@@ -26,9 +26,10 @@ load_dotenv(ROOT_DIR / '.env')
 genai.configure(api_key=os.environ.get('GEMINI_API_KEY'))
 
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db_name = os.environ.get('DB_NAME', 'test_database')
+db = client[db_name]
 
 # JWT Configuration
 JWT_SECRET = os.environ.get('JWT_SECRET', 'your-super-secret-key-change-in-production')
@@ -36,7 +37,11 @@ JWT_ALGORITHM = 'HS256'
 JWT_EXPIRATION_HOURS = 24
 
 # Create the main app without a prefix
-app = FastAPI()
+app = FastAPI(
+    title="Project K API",
+    description="AI-powered educational platform API",
+    version="1.0.0"
+)
 
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
