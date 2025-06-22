@@ -1598,7 +1598,12 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:3000", 
+        "https://*.vercel.app",
+        "https://*.railway.app",
+        "https://your-frontend-domain.vercel.app"  # Replace with your actual domain
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
