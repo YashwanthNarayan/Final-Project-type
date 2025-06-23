@@ -9,6 +9,8 @@ import asyncio
 from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
+import hashlib
+from datetime import datetime, timedelta
 import uuid
 from datetime import datetime, timedelta
 import google.generativeai as genai
@@ -18,6 +20,35 @@ import bcrypt
 import json
 import random
 import string
+
+# Simple in-memory cache (in production, use Redis)
+api_cache = {}
+CACHE_DURATION = timedelta(hours=24)  # Cache for 24 hours
+
+def get_cache_key(prompt, subject=None):
+    """Generate cache key for similar queries"""
+    # Normalize the prompt for better cache hits
+    normalized = prompt.lower().strip()
+    cache_data = f"{normalized}_{subject or 'general'}"
+    return hashlib.md5(cache_data.encode()).hexdigest()
+
+def get_cached_response(cache_key):
+    """Get cached response if it exists and is valid"""
+    if cache_key in api_cache:
+        cached_item = api_cache[cache_key]
+        if datetime.utcnow() - cached_item['timestamp'] < CACHE_DURATION:
+            return cached_item['response']
+        else:
+            # Remove expired cache
+            del api_cache[cache_key]
+    return None
+
+def cache_response(cache_key, response):
+    """Cache the API response"""
+    api_cache[cache_key] = {
+        'response': response,
+        'timestamp': datetime.utcnow()
+    }
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
