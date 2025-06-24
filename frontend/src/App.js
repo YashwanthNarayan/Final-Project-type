@@ -2531,21 +2531,26 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
   const renderClassAnalytics = () => {
     if (!analyticsData || !selectedClass) return null;
 
+    // Safe property access with defaults
+    const classMetrics = analyticsData.class_metrics || {};
+    const studentAnalytics = analyticsData.student_analytics || {};
+    const studentCount = analyticsData.student_count || 0;
+
     return (
       <div className="space-y-6">
         {/* Class Header */}
         <div className="bg-white rounded-xl p-6 shadow-md">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="text-4xl">{getSubjectIcon(selectedClass.subject)}</div>
+              <div className="text-4xl">{getSubjectIcon(selectedClass.subject || 'general')}</div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{selectedClass.class_name}</h2>
-                <p className="text-gray-600">{selectedClass.subject} • Grade {selectedClass.grade_level}</p>
-                <p className="text-sm text-gray-500">Join Code: {selectedClass.join_code}</p>
+                <h2 className="text-2xl font-bold text-gray-900">{selectedClass.class_name || 'Unnamed Class'}</h2>
+                <p className="text-gray-600">{selectedClass.subject || 'General'} • Grade {selectedClass.grade_level || 'Unknown'}</p>
+                <p className="text-sm text-gray-500">Join Code: {selectedClass.join_code || 'N/A'}</p>
               </div>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold text-gray-900">{analyticsData.student_count}</div>
+              <div className="text-3xl font-bold text-gray-900">{studentCount}</div>
               <div className="text-sm text-gray-600">Students</div>
             </div>
           </div>
@@ -2554,7 +2559,7 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
         {/* Class Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-blue-600">{analyticsData.class_metrics.total_messages}</div>
+            <div className="text-2xl font-bold text-blue-600">{classMetrics.total_messages || 0}</div>
             <div className="text-sm text-gray-600">Total Questions</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
