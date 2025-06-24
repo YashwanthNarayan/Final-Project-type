@@ -702,17 +702,27 @@ class PracticeTestBot:
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY')
         
-    async def generate_practice_questions(self, subject: Subject, topics: List[str], difficulty: DifficultyLevel, count: int = 5):
-        """Generate adaptive practice questions with caching"""
+    async def generate_practice_questions(self, subject: Subject, topics: List[str], difficulty: DifficultyLevel, count: int = 5, question_types: List[QuestionType] = None, exclude_question_ids: List[str] = None):
+        """Generate adaptive practice questions with question type filtering and exclusion"""
         
-        # Generate cache key for question set
-        cache_key = get_cache_key(f"{subject.value}_{','.join(topics)}_{difficulty.value}_{count}", "practice")
+        # Build question type filter for the prompt
+        question_type_filter = ""
+        if question_types:
+            type_names = [qt.value.replace('_', ' ') for qt in question_types]
+            question_type_filter = f"IMPORTANT: Generate ONLY these question types: {', '.join(type_names)}. "
         
-        # Check cache first
-        cached_response = get_cached_response(cache_key)
-        if cached_response and isinstance(cached_response, list):
-            logger.info(f"Using cached practice questions for {subject.value}")
-            return cached_response
+        # Generate cache key for question set (include question types in cache key)
+        cache_key_parts = [subject.value, ','.join(topics), difficulty.value, str(count)]
+        if question_types:
+            cache_key_parts.append(','.join([qt.value for qt in question_types]))
+        cache_key = get_cache_key('_'.join(cache_key_parts), "practice")
+        
+        # Check cache first (but be more selective when excluding questions)
+        if not exclude_question_ids:
+            cached_response = get_cached_response(cache_key)
+            if cached_response and isinstance(cached_response, list):
+                logger.info(f"Using cached practice questions for {subject.value}")
+                return cached_response
         
         system_prompt = f"""You are the Practice Test Bot of Project K. Generate {count} practice questions for:
         
@@ -720,9 +730,11 @@ class PracticeTestBot:
         Topics: {', '.join(topics)}
         Difficulty: {difficulty.value.title()}
         
+        {question_type_filter}
+        
         For each question, provide:
         1. Question text
-        2. Question type (MUST BE ONE OF: "mcq", "short_answer", "numerical")
+        2. Question type (MUST BE ONE OF: "mcq", "short_answer", "numerical", "long_answer")
         3. Options (if MCQ, provide 4 options)
         4. Correct answer
         5. Detailed explanation
@@ -740,7 +752,14 @@ class PracticeTestBot:
           }}
         ]
         
-        Make questions NCERT curriculum aligned and age-appropriate. Ensure variety in question types and difficulty within the specified level."""
+        Make questions NCERT curriculum aligned and age-appropriate. Ensure variety in question types and difficulty within the specified level.
+        
+        IMPORTANT REQUIREMENTS:
+        - Generate completely unique questions each time
+        - Avoid repetitive question patterns
+        - Create diverse scenarios and examples
+        - Use different numerical values and contexts
+        - Ensure each question tests understanding differently"""
         
         model = genai.GenerativeModel('gemini-1.5-flash')
         response = await asyncio.to_thread(model.generate_content, system_prompt)
