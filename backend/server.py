@@ -828,6 +828,42 @@ subject_bots = {
 practice_bot = PracticeTestBot()
 
 # Authentication Routes
+async def get_student_seen_questions(student_id: str, subject_name: str = None):
+    """Get list of question IDs that student has already seen"""
+    query = {"student_id": student_id}
+    if subject_name:
+        query["subject"] = subject_name
+    
+    seen_records = await db.student_question_history.find(query).to_list(1000)
+    return [record["question_id"] for record in seen_records]
+
+async def mark_questions_as_seen(student_id: str, question_ids: List[str], subject_name: str):
+    """Mark questions as seen by the student"""
+    seen_records = []
+    for question_id in question_ids:
+        record = {
+            "id": str(uuid.uuid4()),
+            "student_id": student_id,
+            "question_id": question_id,
+            "subject": subject_name,
+            "seen_at": datetime.utcnow(),
+            "attempted": False
+        }
+        seen_records.append(record)
+    
+    if seen_records:
+        await db.student_question_history.insert_many(seen_records)
+
+async def mark_questions_as_attempted(student_id: str, question_ids: List[str]):
+    """Mark questions as attempted when student submits practice test"""
+    await db.student_question_history.update_many(
+        {
+            "student_id": student_id,
+            "question_id": {"$in": question_ids}
+        },
+        {"$set": {"attempted": True}}
+    )
+
 @api_router.post("/auth/register")
 async def register_user(user_data: UserCreate):
     """Register a new user (student or teacher)"""
