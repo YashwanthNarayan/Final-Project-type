@@ -608,6 +608,10 @@ class PracticeTestBot:
                 )
                 questions.append(question)
             
+            # Cache the generated questions
+            cache_response(cache_key, questions)
+            logger.info(f"Cached new practice questions for {subject.value}")
+            
             return questions
         except (json.JSONDecodeError, KeyError) as e:
             # Fallback to simple questions if JSON parsing fails
