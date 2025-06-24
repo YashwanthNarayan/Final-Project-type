@@ -1079,9 +1079,9 @@ async def send_chat_message(message_data: Dict[str, Any], token_data: dict = Dep
             )
             bot_type = f"{subject.value}_bot"
         else:
-            # Handle with central brain
+            # Handle with central brain (also pass conversation history)
             central_response = await central_brain.analyze_and_route(
-                user_message, message_data['session_id'], student_profile
+                user_message, message_data['session_id'], student_profile, conversation_history
             )
             bot_response = central_response
             bot_type = "central_brain"
