@@ -640,6 +640,59 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
               </div>
             )}
 
+            {selectedSubject && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Question Types (Leave empty for all types)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {questionTypes.map((questionType) => (
+                    <button
+                      key={questionType.id}
+                      onClick={() => handleQuestionTypeToggle(questionType.id)}
+                      className={`p-4 rounded-lg border-2 transition-all text-left ${
+                        selectedQuestionTypes.includes(questionType.id)
+                          ? 'border-purple-500 bg-purple-50 text-purple-700'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <span className="text-2xl">{questionType.icon}</span>
+                        <div>
+                          <div className="font-medium">{questionType.name}</div>
+                          <div className="text-sm text-gray-600">{questionType.description}</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                {selectedQuestionTypes.length > 0 && (
+                  <div className="mt-2 text-sm text-purple-600">
+                    Selected: {selectedQuestionTypes.map(type => 
+                      questionTypes.find(qt => qt.id === type)?.name
+                    ).join(', ')}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {selectedSubject && (
+              <div>
+                <label className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    checked={excludeSeen}
+                    onChange={(e) => setExcludeSeen(e.target.checked)}
+                    className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                  />
+                  <div>
+                    <span className="text-sm font-medium text-gray-700">Exclude Previously Seen Questions</span>
+                    <div className="text-xs text-gray-500">Generate only new questions you haven't seen before</div>
+                  </div>
+                </label>
+              </div>
+            )}
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Difficulty</label>
