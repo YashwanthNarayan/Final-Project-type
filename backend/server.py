@@ -639,10 +639,19 @@ class SubjectBot:
         
         response = await asyncio.to_thread(
             chat.send_message,
-            f"System: {system_prompt}\n\nUser: {message}"
+            f"System: {system_prompt}\n\nStudent's Current Question: {message}"
         )
         
-        return response.text
+        response_text = response.text
+        
+        # Cache the response (but only for early conversation or standalone questions)
+        if not conversation_history or len(conversation_history) < 3:
+            cache_response(cache_key, response_text)
+            logger.info(f"Cached new response for {self.subject.value} query")
+        else:
+            logger.info(f"Generated contextual response for ongoing {self.subject.value} conversation")
+        
+        return response_text
 
 class PracticeTestBot:
     def __init__(self):
