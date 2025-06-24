@@ -611,7 +611,10 @@ class PracticeTestBot:
             return questions
         except (json.JSONDecodeError, KeyError) as e:
             # Fallback to simple questions if JSON parsing fails
-            return await self._generate_fallback_questions(subject, topics, difficulty, count)
+            fallback_questions = await self._generate_fallback_questions(subject, topics, difficulty, count)
+            # Cache fallback questions too
+            cache_response(cache_key, fallback_questions)
+            return fallback_questions
 
     async def _generate_fallback_questions(self, subject: Subject, topics: List[str], difficulty: DifficultyLevel, count: int):
         """Generate fallback questions when JSON parsing fails"""
