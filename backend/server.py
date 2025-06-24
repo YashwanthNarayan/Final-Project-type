@@ -1090,14 +1090,34 @@ async def send_chat_message(message_data: Dict[str, Any], token_data: dict = Dep
             bot_response = central_response
             bot_type = "central_brain"
         
-        # Create and save the message
+        # Detect conversation characteristics
+        conversation_turn = len(conversation_history) + 1
+        referenced_previous = bool(conversation_history) and any(
+            word in bot_response.lower() for word in 
+            ['previous', 'earlier', 'before', 'as we discussed', 'remember', 'continuing']
+        )
+        
+        # Detect student sentiment
+        student_sentiment = "neutral"
+        if any(word in user_message.lower() for word in ['confused', 'difficult', 'hard', 'stuck']):
+            student_sentiment = "struggling"
+        elif any(word in user_message.lower() for word in ['got it', 'understand', 'clear', 'easy']):
+            student_sentiment = "confident"
+        elif any(word in user_message.lower() for word in ['help', 'please', 'urgent']):
+            student_sentiment = "seeking_help"
+        
+        # Create and save the message with enhanced context
         message_obj = ChatMessage(
             session_id=message_data['session_id'],
             student_id=token_data['sub'],
             subject=subject,
             user_message=user_message,
             bot_response=bot_response,
-            bot_type=bot_type
+            bot_type=bot_type,
+            conversation_turn=conversation_turn,
+            referenced_previous=referenced_previous,
+            student_sentiment=student_sentiment,
+            topic=message_data.get('topic', 'general')
         )
         
         await db.chat_messages.insert_one(message_obj.dict())
