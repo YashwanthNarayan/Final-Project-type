@@ -1219,10 +1219,24 @@ async def get_chat_history(subject: Optional[str] = None, token_data: dict = Dep
 # Practice Test Routes
 @api_router.post("/practice/generate")
 async def generate_practice_test(request: PracticeTestRequest, token_data: dict = Depends(verify_token)):
-    """Generate practice questions"""
+    """Generate practice questions with question type filtering and exclusion of seen questions"""
     try:
+        student_id = token_data['sub']
+        
+        # Get previously seen questions if exclusion is requested
+        exclude_question_ids = []
+        if request.exclude_seen:
+            exclude_question_ids = await get_student_seen_questions(student_id, request.subject.value)
+            logger.info(f"Excluding {len(exclude_question_ids)} previously seen questions for student {student_id}")
+        
+        # Generate questions with filtering
         questions = await practice_bot.generate_practice_questions(
-            request.subject, request.topics, request.difficulty, request.question_count
+            request.subject, 
+            request.topics, 
+            request.difficulty, 
+            request.question_count,
+            request.question_types,
+            exclude_question_ids
         )
         
         # Store questions in database
@@ -1231,10 +1245,17 @@ async def generate_practice_test(request: PracticeTestRequest, token_data: dict 
             await db.practice_questions.insert_one(question.dict())
             question_ids.append(question.id)
         
+        # Mark these questions as seen by the student
+        await mark_questions_as_seen(student_id, question_ids, request.subject.value)
+        
+        test_id = str(uuid.uuid4())
+        
         return {
-            "test_id": str(uuid.uuid4()),
+            "test_id": test_id,
             "questions": questions,
-            "total_questions": len(questions)
+            "total_questions": len(questions),
+            "question_types_generated": list(set([q.question_type for q in questions])),
+            "excluded_count": len(exclude_question_ids) if request.exclude_seen else 0
         }
     except Exception as e:
         logger.error(f"Error generating practice test: {str(e)}")
