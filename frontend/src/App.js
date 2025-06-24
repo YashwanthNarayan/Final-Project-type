@@ -272,13 +272,22 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
     
     setIsGenerating(true);
     try {
-      // Explicitly include the authorization header in this request
-      const response = await axios.post(`${API_BASE}/api/practice/generate`, {
+      // Build request payload with new options
+      const requestPayload = {
         subject: selectedSubject,
         topics: selectedTopics,
         difficulty: difficulty,
-        question_count: questionCount
-      }, {
+        question_count: questionCount,
+        exclude_seen: excludeSeen
+      };
+
+      // Add question types if selected
+      if (selectedQuestionTypes.length > 0) {
+        requestPayload.question_types = selectedQuestionTypes;
+      }
+
+      // Explicitly include the authorization header in this request
+      const response = await axios.post(`${API_BASE}/api/practice/generate`, requestPayload, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -290,6 +299,18 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
       setUserAnswers({});
       setShowResults(false);
       setTimeLeft(questionCount * 120); // 2 minutes per question
+
+      // Show success message with new features info
+      const excludedCount = response.data.excluded_count || 0;
+      const questionTypes = response.data.question_types_generated || [];
+      
+      console.log(`Generated ${response.data.total_questions} questions`);
+      if (excludedCount > 0) {
+        console.log(`Excluded ${excludedCount} previously seen questions`);
+      }
+      if (questionTypes.length > 0) {
+        console.log(`Question types: ${questionTypes.join(', ')}`);
+      }
     } catch (error) {
       console.error('Error generating test:', error);
       console.error('Error details:', error.response?.data);
