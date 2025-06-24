@@ -457,19 +457,49 @@ class CentralBrainBot:
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY')
         
-    async def analyze_and_route(self, message: str, session_id: str, student_profile=None):
-        """Analyze user message and determine which bot should handle it"""
+    async def analyze_and_route(self, message: str, session_id: str, student_profile=None, conversation_history=None):
+        """Analyze user message and determine which bot should handle it with conversation context"""
+        
+        # Extract conversation insights
+        conversation_insights = extract_conversation_insights(conversation_history, student_profile)
+        
+        # Build conversation context  
+        conversation_context = build_conversation_context(conversation_history, max_messages=3)
+        
         profile_context = ""
         if student_profile:
             profile_context = f"Student Profile: Grade {student_profile.get('grade_level')}, Subjects: {student_profile.get('subjects')}, Current Level: {student_profile.get('level', 1)}"
+        
+        # Generate contextual cache key
+        cache_key = generate_contextual_cache_key(message, "central_brain", conversation_insights)
+        
+        # Check cache first (but be selective for ongoing conversations)
+        if not conversation_history or len(conversation_history) < 2:
+            cached_response = get_cached_response(cache_key)
+            if cached_response:
+                logger.info("Using cached response for central brain query")
+                return cached_response
             
         system_prompt = f"""You are the Central Brain of Project K, an AI educational tutor system. 
         Your job is to analyze student messages and determine which subject-specific bot should handle them.
         
         {profile_context}
         
+        CONVERSATION CONTEXT:
+        {conversation_context}
+        
+        LEARNING INSIGHTS:
+        - Student's struggling topics: {', '.join(conversation_insights.get('struggling_topics', ['None identified']))}
+        - Student's strengths: {', '.join(conversation_insights.get('mastered_concepts', ['None identified']))}
+        - Preferred learning style: {conversation_insights.get('learning_style', 'Not determined')}
+        
         Available subjects: Math, Physics, Chemistry, Biology, English, History, Geography
         Available activities: Study, Practice Tests, Mindfulness, Review
+        
+        IMPORTANT: Consider the conversation flow and previous messages when routing.
+        - If the student is continuing a topic from earlier messages, keep them with the same subject bot
+        - If they're asking follow-up questions, acknowledge the previous context
+        - If they switch topics, help them transition smoothly
         
         Analyze the student's message and respond with:
         1. Subject: [Math/Physics/Chemistry/Biology/English/History/Geography/General]
@@ -478,6 +508,7 @@ class CentralBrainBot:
         4. Urgency: [Low/Medium/High] (based on keywords like "test tomorrow", "homework due", etc.)
         5. Mood: [Confused/Frustrated/Excited/Stressed/Neutral] (based on tone)
         6. Activity Type: [Study/Practice/Review/Mindfulness]
+        7. Conversation Flow: [New Topic/Continuing Previous/Follow-up Question/Topic Switch]
         
         Routing Rules:
         - Math questions: ROUTE_TO: math_bot
@@ -491,7 +522,7 @@ class CentralBrainBot:
         - Practice test requests: ROUTE_TO: practice_bot
         - General conversation: Handle yourself with encouragement
         
-        Always be encouraging and supportive. Remember, you're helping middle and high school students."""
+        Always be encouraging and supportive. Remember, you're helping middle and high school students maintain a coherent learning conversation."""
         
         # Generate cache key for the query
         cache_key = get_cache_key(message, "central_brain")
