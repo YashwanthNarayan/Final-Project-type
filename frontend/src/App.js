@@ -2458,46 +2458,61 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
         {/* Class Summary */}
         <div className="bg-white rounded-xl p-6 shadow-md">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Class Performance Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {analyticsData.class_summary.map((classData) => (
-              <div
-                key={classData.class_info.class_id}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => {
-                  setSelectedClass(classData.class_info);
-                  setSelectedView('class');
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-2xl">{getSubjectIcon(classData.class_info.subject)}</div>
-                  <span className="text-sm text-gray-500">{classData.student_count} students</span>
+          {classSummary.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">📚</div>
+              <p>No classes created yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classSummary.map((classData) => (
+                <div
+                  key={classData.class_info?.class_id || Math.random()}
+                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={() => {
+                    if (classData.class_info) {
+                      setSelectedClass(classData.class_info);
+                      setSelectedView('class');
+                    }
+                  }}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-2xl">{getSubjectIcon(classData.class_info?.subject || 'general')}</div>
+                    <span className="text-sm text-gray-500">{classData.student_count || 0} students</span>
+                  </div>
+                  <h4 className="font-semibold text-gray-900 mb-1">{classData.class_info?.class_name || 'Unnamed Class'}</h4>
+                  <div className="text-sm text-gray-600 space-y-1">
+                    <div>Avg XP: {classData.average_xp || 0}</div>
+                    <div>Weekly Activity: {classData.weekly_activity || 0}</div>
+                  </div>
                 </div>
-                <h4 className="font-semibold text-gray-900 mb-1">{classData.class_info.class_name}</h4>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <div>Avg XP: {classData.average_xp}</div>
-                  <div>Weekly Activity: {classData.weekly_activity}</div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Subject Distribution Chart */}
         <div className="bg-white rounded-xl p-6 shadow-md">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Subject Activity Distribution</h3>
-          <div className="space-y-3">
-            {analyticsData.subject_distribution.map((item, index) => {
-              const total = analyticsData.subject_distribution.reduce((sum, i) => sum + i.count, 0);
-              const percentage = ((item.count / total) * 100).toFixed(1);
-              return (
-                <div key={index} className="flex items-center space-x-3">
-                  <div className="text-2xl">{getSubjectIcon(item.subject)}</div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="font-medium capitalize">{item.subject}</span>
-                      <span className="text-sm text-gray-600">{item.count} questions ({percentage}%)</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+          {subjectDistribution.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">📊</div>
+              <p>No subject activity data available yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {subjectDistribution.map((item, index) => {
+                const total = subjectDistribution.reduce((sum, i) => sum + (i.count || 0), 0);
+                const percentage = total > 0 ? ((item.count / total) * 100).toFixed(1) : 0;
+                return (
+                  <div key={index} className="flex items-center space-x-3">
+                    <div className="text-2xl">{getSubjectIcon(item.subject || 'general')}</div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-medium capitalize">{item.subject || 'Unknown'}</span>
+                        <span className="text-sm text-gray-600">{item.count || 0} questions ({percentage}%)</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
                         style={{ width: `${percentage}%` }}
