@@ -319,6 +319,16 @@ class PracticeTestRequest(BaseModel):
     topics: List[str]
     difficulty: DifficultyLevel
     question_count: int = Field(ge=5, le=50)
+    question_types: Optional[List[QuestionType]] = None  # Allow filtering by question types
+    exclude_seen: bool = True  # Whether to exclude previously seen questions
+
+class StudentQuestionHistory(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    student_id: str
+    question_id: str
+    subject: Subject
+    seen_at: datetime = Field(default_factory=datetime.utcnow)
+    attempted: bool = False  # Whether student actually attempted this question
 
 class PracticeAttempt(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
