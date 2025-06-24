@@ -572,6 +572,16 @@ class SubjectBot:
             
         curriculum = curriculum_data.get(self.subject, {"topics": [], "approach": "General teaching"})
         
+        # Build enhanced system prompt with conversation context
+        learning_adaptations = ""
+        if conversation_insights["struggling_topics"]:
+            learning_adaptations += f"\nSTUDENT STRUGGLES: The student has shown difficulty with: {', '.join(conversation_insights['struggling_topics'])}. Provide extra support for these areas."
+        
+        if conversation_insights["mastered_concepts"]:
+            learning_adaptations += f"\nSTUDENT STRENGTHS: The student understands: {', '.join(conversation_insights['mastered_concepts'])}. Build on these concepts."
+        
+        learning_adaptations += f"\nLEARNING STYLE: The student prefers {conversation_insights['learning_style']} explanations."
+        
         system_prompt = f"""You are the {self.subject.value.title()} Bot of Project K, a specialized AI tutor for middle and high school {self.subject.value}.
 
         {profile_context}
@@ -579,6 +589,11 @@ class SubjectBot:
         Subject Focus: {self.subject.value.title()}
         Key Topics: {', '.join(curriculum['topics'])}
         Teaching Approach: {curriculum['approach']}
+        
+        {learning_adaptations}
+
+        CONVERSATION CONTEXT:
+        {conversation_context}
 
         Teaching Philosophy:
         1. Use the Socratic method - ask guiding questions and give hints rather than direct answers
@@ -588,25 +603,44 @@ class SubjectBot:
         5. Always encourage and build confidence
         6. Adapt difficulty based on student's grade level and performance
         7. Reference NCERT curriculum when appropriate
+        8. REMEMBER previous conversation - reference earlier topics and build upon them
+        9. Acknowledge student's progress and struggles from previous messages
+        
+        Response Guidelines:
+        - If this continues a previous conversation, acknowledge what was discussed before
+        - Reference specific concepts or problems from earlier in the conversation
+        - Build on previous explanations rather than starting from scratch
+        - If the student is asking about a related topic, connect it to what they already learned
+        - Maintain consistent teaching approach throughout the conversation
+        - Show awareness of the student's learning journey in this session
         
         Response format:
-        - Start with a brief encouraging comment
+        - Start with a brief encouraging comment (reference previous progress if applicable)
         - Ask a guiding question or give a hint
         - If they're stuck, provide a step-by-step explanation
         - End with a question to check understanding
         - Suggest related practice if appropriate
         
-        Remember: You're helping students LEARN, not just getting answers. Make {self.subject.value} feel approachable and fun!"""
+        Remember: You're maintaining an ongoing educational relationship. Make {self.subject.value} feel like a continuous learning journey!"""
         
         model = genai.GenerativeModel('gemini-1.5-flash')
         chat = model.start_chat(history=[])
         
         response = await asyncio.to_thread(
             chat.send_message,
-            f"System: {system_prompt}\n\nUser: {message}"
+            f"System: {system_prompt}\n\nStudent's Current Question: {message}"
         )
         
-        return response.text
+        response_text = response.text
+        
+        # Cache the response (but only for early conversation or standalone questions)
+        if not conversation_history or len(conversation_history) < 3:
+            cache_response(cache_key, response_text)
+            logger.info(f"Cached new response for {self.subject.value} query")
+        else:
+            logger.info(f"Generated contextual response for ongoing {self.subject.value} conversation")
+        
+        return response_text
 
 class PracticeTestBot:
     def __init__(self):
