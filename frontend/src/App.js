@@ -2432,6 +2432,32 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
       setAnalyticsData(response.data);
     } catch (error) {
       console.error('Error loading student analytics:', error);
+      // Set default structure to prevent crashes
+      setAnalyticsData({
+        student_profile: {
+          name: 'Unknown Student',
+          level: 1,
+          total_xp: 0,
+          email: 'N/A'
+        },
+        engagement_stats: {
+          total_messages: 0,
+          subjects_covered: [],
+          last_activity: null
+        },
+        performance_stats: {
+          total_tests: 0,
+          average_score: 0,
+          total_time: 0
+        },
+        wellness_stats: {
+          mindfulness_sessions: 0,
+          mindfulness_minutes: 0,
+          mood_improvement: 0
+        },
+        activity_timeline: [],
+        subject_progress: {}
+      });
     } finally {
       setLoading(false);
     }
