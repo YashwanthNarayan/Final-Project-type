@@ -1288,6 +1288,9 @@ async def submit_practice_test(test_data: Dict[str, Any], token_data: dict = Dep
         
         await db.practice_attempts.insert_one(attempt.dict())
         
+        # Mark questions as attempted
+        await mark_questions_as_attempted(token_data['sub'], test_data['questions'])
+        
         # Award XP based on score
         xp_earned = int(score / 10) * 5  # 5 XP per 10% score
         await award_xp(token_data['sub'], xp_earned, f"Completed practice test with {score:.1f}% score")
