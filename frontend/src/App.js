@@ -2423,28 +2423,34 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
   const renderOverviewAnalytics = () => {
     if (!analyticsData) return null;
 
+    // Safe property access with defaults
+    const metrics = analyticsData.overview_metrics || {};
+    const classSummary = analyticsData.class_summary || [];
+    const subjectDistribution = analyticsData.subject_distribution || [];
+    const weeklyTrend = analyticsData.weekly_activity_trend || [];
+
     return (
       <div className="space-y-6">
         {/* Overview Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-3xl font-bold text-blue-600">{analyticsData.overview_metrics.total_classes}</div>
+            <div className="text-3xl font-bold text-blue-600">{metrics.total_classes || 0}</div>
             <div className="text-sm text-gray-600">Total Classes</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-3xl font-bold text-green-600">{analyticsData.overview_metrics.total_students}</div>
+            <div className="text-3xl font-bold text-green-600">{metrics.total_students || 0}</div>
             <div className="text-sm text-gray-600">Total Students</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-3xl font-bold text-purple-600">{analyticsData.overview_metrics.total_messages}</div>
+            <div className="text-3xl font-bold text-purple-600">{metrics.total_messages || 0}</div>
             <div className="text-sm text-gray-600">Questions Asked</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-3xl font-bold text-orange-600">{analyticsData.overview_metrics.total_tests}</div>
+            <div className="text-3xl font-bold text-orange-600">{metrics.total_tests || 0}</div>
             <div className="text-sm text-gray-600">Tests Taken</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-3xl font-bold text-red-600">{analyticsData.overview_metrics.average_score}%</div>
+            <div className="text-3xl font-bold text-red-600">{metrics.average_score || 0}%</div>
             <div className="text-sm text-gray-600">Avg Score</div>
           </div>
         </div>
