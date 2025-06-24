@@ -18,6 +18,122 @@ import bcrypt
 import json
 import random
 import string
+import hashlib
+
+# Simple in-memory cache (in production, use Redis)
+api_cache = {}
+CACHE_DURATION = timedelta(hours=24)  # Cache for 24 hours
+
+def get_cache_key(prompt, subject=None):
+    """Generate cache key for similar queries"""
+    # Normalize the prompt for better cache hits
+    normalized = prompt.lower().strip()
+    cache_data = f"{normalized}_{subject or 'general'}"
+    return hashlib.md5(cache_data.encode()).hexdigest()
+
+def get_cached_response(cache_key):
+    """Get cached response if it exists and is valid"""
+    if cache_key in api_cache:
+        cached_item = api_cache[cache_key]
+        if datetime.utcnow() - cached_item['timestamp'] < CACHE_DURATION:
+            return cached_item['response']
+        else:
+            # Remove expired cache
+            del api_cache[cache_key]
+    return None
+
+def cache_response(cache_key, response):
+    """Cache the API response"""
+    api_cache[cache_key] = {
+        'response': response,
+        'timestamp': datetime.utcnow()
+    }
+
+def build_conversation_context(conversation_history, max_messages=5):
+    """Build structured conversation context from recent messages"""
+    if not conversation_history:
+        return "This is the start of our conversation."
+    
+    # Reverse to get chronological order (oldest first)
+    recent_messages = list(reversed(conversation_history[:max_messages]))
+    
+    context_parts = ["Recent conversation history:"]
+    for i, msg in enumerate(recent_messages):
+        user_msg = msg.get('user_message', '')
+        bot_msg = msg.get('bot_response', '')
+        
+        context_parts.append(f"\n{i+1}. Student: {user_msg}")
+        context_parts.append(f"   AI Tutor: {bot_msg}")
+    
+    context_parts.append("\nCurrent conversation context:")
+    context_parts.append("- Continue building on previous topics discussed")
+    context_parts.append("- Reference earlier explanations when relevant")
+    context_parts.append("- Maintain teaching consistency with previous responses")
+    
+    return "\n".join(context_parts)
+
+def extract_conversation_insights(conversation_history, student_profile=None):
+    """Extract insights about the student's learning from conversation history"""
+    insights = {
+        "struggling_topics": [],
+        "mastered_concepts": [],
+        "learning_style": "visual",  # default
+        "engagement_level": "medium",
+        "common_mistakes": [],
+        "progress_indicators": []
+    }
+    
+    if not conversation_history:
+        return insights
+    
+    # Analyze recent conversation patterns
+    for msg in conversation_history[:10]:  # Last 10 messages
+        user_message = msg.get('user_message', '').lower()
+        bot_response = msg.get('bot_response', '').lower()
+        
+        # Detect struggling topics
+        if any(word in user_message for word in ['confused', 'difficult', 'hard', 'don\'t understand', 'stuck']):
+            topic = msg.get('topic', 'general concept')
+            if topic not in insights["struggling_topics"]:
+                insights["struggling_topics"].append(topic)
+        
+        # Detect mastered concepts
+        if any(word in user_message for word in ['got it', 'understand', 'clear', 'makes sense', 'easy']):
+            topic = msg.get('topic', 'general concept')
+            if topic not in insights["mastered_concepts"]:
+                insights["mastered_concepts"].append(topic)
+        
+        # Detect learning preferences
+        if any(word in user_message for word in ['example', 'show me', 'demonstrate']):
+            insights["learning_style"] = "example-based"
+        elif any(word in user_message for word in ['explain', 'why', 'how']):
+            insights["learning_style"] = "conceptual"
+    
+    return insights
+
+async def update_session_insights(session_id, insights):
+    """Update session with learning insights"""
+    try:
+        await db.chat_sessions.update_one(
+            {"session_id": session_id},
+            {
+                "$set": {
+                    "learning_insights": insights,
+                    "last_updated": datetime.utcnow()
+                }
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error updating session insights: {str(e)}")
+
+def generate_contextual_cache_key(message, subject, conversation_insights):
+    """Generate cache key that considers conversation context"""
+    # Include learning style and struggling topics in cache key
+    context_signature = f"{conversation_insights.get('learning_style', 'general')}_" \
+                       f"{'_'.join(conversation_insights.get('struggling_topics', [])[:2])}"
+    
+    cache_data = f"{message.lower().strip()}_{subject}_{context_signature}"
+    return hashlib.md5(cache_data.encode()).hexdigest()
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
