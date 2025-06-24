@@ -407,6 +407,15 @@ class CentralBrainBot:
         
         Always be encouraging and supportive. Remember, you're helping middle and high school students."""
         
+        # Generate cache key for the query
+        cache_key = get_cache_key(message, "central_brain")
+        
+        # Check cache first
+        cached_response = get_cached_response(cache_key)
+        if cached_response:
+            logger.info("Using cached response for central brain query")
+            return cached_response
+        
         model = genai.GenerativeModel('gemini-1.5-flash')
         chat = model.start_chat(history=[])
         
@@ -415,7 +424,12 @@ class CentralBrainBot:
             f"System: {system_prompt}\n\nUser: {message}"
         )
         
-        return response.text
+        # Cache the response for future use
+        response_text = response.text
+        cache_response(cache_key, response_text)
+        logger.info("Cached new response for central brain query")
+        
+        return response_text
 
 class SubjectBot:
     def __init__(self, subject: Subject):
