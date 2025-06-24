@@ -523,16 +523,27 @@ class SubjectBot:
         self.api_key = os.environ.get('GEMINI_API_KEY')
         
     async def teach_subject(self, message: str, session_id: str, student_profile=None, conversation_history=None):
-        """Teach subject using Socratic method with caching"""
+        """Teach subject using Socratic method with enhanced conversation memory"""
         
-        # Generate cache key for similar questions
-        cache_key = get_cache_key(message, self.subject.value)
+        # Extract insights from conversation history
+        conversation_insights = extract_conversation_insights(conversation_history, student_profile)
         
-        # Check cache first
-        cached_response = get_cached_response(cache_key)
-        if cached_response:
-            logger.info(f"Using cached response for {self.subject.value} query")
-            return cached_response
+        # Update session with insights
+        await update_session_insights(session_id, conversation_insights)
+        
+        # Generate contextual cache key that considers conversation flow
+        cache_key = generate_contextual_cache_key(message, self.subject.value, conversation_insights)
+        
+        # Check cache first (but be more selective for ongoing conversations)
+        if not conversation_history or len(conversation_history) < 3:
+            # Only use cache for early conversation or standalone questions
+            cached_response = get_cached_response(cache_key)
+            if cached_response:
+                logger.info(f"Using cached response for {self.subject.value} query")
+                return cached_response
+        
+        # Build rich conversation context
+        conversation_context = build_conversation_context(conversation_history)
         
         # Subject-specific curriculum knowledge (NCERT-based)
         curriculum_data = {
