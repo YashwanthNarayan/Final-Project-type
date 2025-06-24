@@ -209,6 +209,8 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
   const [selectedTopics, setSelectedTopics] = useState([]);
   const [difficulty, setDifficulty] = useState('medium');
   const [questionCount, setQuestionCount] = useState(10);
+  const [selectedQuestionTypes, setSelectedQuestionTypes] = useState([]);
+  const [excludeSeen, setExcludeSeen] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [currentTest, setCurrentTest] = useState(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -227,11 +229,26 @@ const PracticeTestsComponent = ({ student, onNavigate }) => {
     geography: { name: 'Geography', topics: ['Physical Geography', 'Human Geography', 'Climate', 'Natural Resources'] }
   };
 
+  const questionTypes = [
+    { id: 'mcq', name: 'Multiple Choice', description: 'Choose from multiple options', icon: '📝' },
+    { id: 'short_answer', name: 'Short Answer', description: 'Brief written responses', icon: '✏️' },
+    { id: 'numerical', name: 'Numerical', description: 'Mathematical calculations', icon: '🔢' },
+    { id: 'long_answer', name: 'Long Answer', description: 'Detailed explanations', icon: '📄' }
+  ];
+
   const handleTopicToggle = (topic) => {
     setSelectedTopics(prev => 
       prev.includes(topic) 
         ? prev.filter(t => t !== topic)
         : [...prev, topic]
+    );
+  };
+
+  const handleQuestionTypeToggle = (typeId) => {
+    setSelectedQuestionTypes(prev => 
+      prev.includes(typeId) 
+        ? prev.filter(t => t !== typeId)
+        : [...prev, typeId]
     );
   };
 
