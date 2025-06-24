@@ -2563,15 +2563,15 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
             <div className="text-sm text-gray-600">Total Questions</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-green-600">{analyticsData.class_metrics.total_tests}</div>
+            <div className="text-2xl font-bold text-green-600">{classMetrics.total_tests || 0}</div>
             <div className="text-sm text-gray-600">Tests Taken</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-purple-600">{analyticsData.class_metrics.average_score.toFixed(1)}%</div>
+            <div className="text-2xl font-bold text-purple-600">{(classMetrics.average_score || 0).toFixed(1)}%</div>
             <div className="text-sm text-gray-600">Avg Score</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-orange-600">{analyticsData.class_metrics.active_students}</div>
+            <div className="text-2xl font-bold text-orange-600">{classMetrics.active_students || 0}</div>
             <div className="text-sm text-gray-600">Active Students</div>
           </div>
         </div>
@@ -2579,35 +2579,47 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
         {/* Student List */}
         <div className="bg-white rounded-xl p-6 shadow-md">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Student Performance</h3>
-          <div className="space-y-4">
-            {Object.entries(analyticsData.student_analytics).map(([studentId, data]) => (
-              <div
-                key={studentId}
-                className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => {
-                  setSelectedStudent(studentId);
-                  setSelectedView('student');
-                }}
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                      <span className="text-white font-bold">{data.profile.name.charAt(0)}</span>
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-900">{data.profile.name}</h4>
-                      <p className="text-sm text-gray-600">Level {data.profile.level} • {data.profile.total_xp} XP</p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-lg font-bold text-blue-600">{data.engagement.total_messages}</div>
-                      <div className="text-xs text-gray-600">Questions</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-green-600">{data.performance.total_tests}</div>
-                      <div className="text-xs text-gray-600">Tests</div>
-                    </div>
+          {Object.keys(studentAnalytics).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">👥</div>
+              <p>No students enrolled in this class yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(studentAnalytics).map(([studentId, data]) => {
+                const profile = data?.profile || {};
+                const engagement = data?.engagement || {};
+                const performance = data?.performance || {};
+                const wellness = data?.wellness || {};
+                
+                return (
+                  <div
+                    key={studentId}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                    onClick={() => {
+                      setSelectedStudent(studentId);
+                      setSelectedView('student');
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                          <span className="text-white font-bold">{(profile.name || 'Student').charAt(0)}</span>
+                        </div>
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{profile.name || 'Unknown Student'}</h4>
+                          <p className="text-sm text-gray-600">Level {profile.level || 1} • {profile.total_xp || 0} XP</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-blue-600">{engagement.total_messages || 0}</div>
+                          <div className="text-xs text-gray-600">Questions</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-green-600">{performance.total_tests || 0}</div>
+                          <div className="text-xs text-gray-600">Tests</div>
+                        </div>
                     <div>
                       <div className="text-lg font-bold text-purple-600">{data.performance.average_score}%</div>
                       <div className="text-xs text-gray-600">Avg Score</div>
