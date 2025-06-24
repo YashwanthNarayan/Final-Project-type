@@ -527,7 +527,16 @@ class PracticeTestBot:
         self.api_key = os.environ.get('GEMINI_API_KEY')
         
     async def generate_practice_questions(self, subject: Subject, topics: List[str], difficulty: DifficultyLevel, count: int = 5):
-        """Generate adaptive practice questions"""
+        """Generate adaptive practice questions with caching"""
+        
+        # Generate cache key for question set
+        cache_key = get_cache_key(f"{subject.value}_{','.join(topics)}_{difficulty.value}_{count}", "practice")
+        
+        # Check cache first
+        cached_response = get_cached_response(cache_key)
+        if cached_response and isinstance(cached_response, list):
+            logger.info(f"Using cached practice questions for {subject.value}")
+            return cached_response
         
         system_prompt = f"""You are the Practice Test Bot of Project K. Generate {count} practice questions for:
         
