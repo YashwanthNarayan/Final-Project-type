@@ -284,6 +284,10 @@ class ChatMessage(BaseModel):
     topic: Optional[str] = None
     confidence_score: Optional[float] = None
     learning_points: List[str] = []
+    conversation_turn: int = 0  # Track position in conversation
+    referenced_previous: bool = False  # Whether this response referenced previous messages
+    student_sentiment: Optional[str] = None  # Detected student mood/sentiment
+    learning_objective_met: Optional[bool] = None  # Whether learning objective was achieved
 
 class ChatSession(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
