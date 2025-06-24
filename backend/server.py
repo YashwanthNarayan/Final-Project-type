@@ -423,7 +423,16 @@ class SubjectBot:
         self.api_key = os.environ.get('GEMINI_API_KEY')
         
     async def teach_subject(self, message: str, session_id: str, student_profile=None, conversation_history=None):
-        """Teach subject using Socratic method with personalized approach"""
+        """Teach subject using Socratic method with caching"""
+        
+        # Generate cache key for similar questions
+        cache_key = get_cache_key(message, self.subject.value)
+        
+        # Check cache first
+        cached_response = get_cached_response(cache_key)
+        if cached_response:
+            logger.info(f"Using cached response for {self.subject.value} query")
+            return cached_response
         
         # Subject-specific curriculum knowledge (NCERT-based)
         curriculum_data = {
