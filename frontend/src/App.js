@@ -204,7 +204,6 @@ const AuthPortal = ({ onAuthSuccess }) => {
 };
 
 // Notes Component
-const NotesComponent = ({ student, onNavigate }) => {
   const [currentView, setCurrentView] = useState('library'); // library, generate, view
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
