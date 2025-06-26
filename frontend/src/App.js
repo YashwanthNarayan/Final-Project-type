@@ -433,8 +433,6 @@ const NotesComponent = ({ student, onNavigate }) => {
       </div>
     );
   }
-
-  // Notes Component
 const NotesComponent = ({ student, onNavigate }) => {
   const [currentView, setCurrentView] = useState('library'); // library, generate, view
   const [notes, setNotes] = useState([]);
