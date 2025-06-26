@@ -2688,6 +2688,14 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
   const renderStudentAnalytics = () => {
     if (!analyticsData || !selectedStudent) return null;
 
+    // Safe property access with defaults
+    const studentProfile = analyticsData.student_profile || {};
+    const engagementStats = analyticsData.engagement_stats || {};
+    const performanceStats = analyticsData.performance_stats || {};
+    const wellnessStats = analyticsData.wellness_stats || {};
+    const activityTimeline = analyticsData.activity_timeline || [];
+    const subjectProgress = analyticsData.subject_progress || {};
+
     return (
       <div className="space-y-6">
         {/* Student Header */}
@@ -2695,13 +2703,13 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">{analyticsData.student_profile.name.charAt(0)}</span>
+                <span className="text-white font-bold text-xl">{(studentProfile.name || 'Student').charAt(0)}</span>
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">{analyticsData.student_profile.name}</h2>
-                <p className="text-gray-600">Grade {analyticsData.student_profile.grade_level}</p>
+                <h2 className="text-2xl font-bold text-gray-900">{studentProfile.name || 'Unknown Student'}</h2>
+                <p className="text-gray-600">Grade {studentProfile.grade_level || 'Unknown'}</p>
                 <p className="text-sm text-gray-500">
-                  Level {analyticsData.overall_stats.current_level} • {analyticsData.overall_stats.total_xp} XP
+                  Level {studentProfile.level || 1} • {studentProfile.total_xp || 0} XP
                 </p>
               </div>
             </div>
@@ -2711,20 +2719,20 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
         {/* Overall Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-blue-600">{analyticsData.overall_stats.total_messages}</div>
+            <div className="text-2xl font-bold text-blue-600">{engagementStats.total_messages || 0}</div>
             <div className="text-sm text-gray-600">Questions Asked</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-green-600">{analyticsData.overall_stats.total_tests}</div>
+            <div className="text-2xl font-bold text-green-600">{performanceStats.total_tests || 0}</div>
             <div className="text-sm text-gray-600">Tests Taken</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-purple-600">{analyticsData.overall_stats.average_test_score.toFixed(1)}%</div>
+            <div className="text-2xl font-bold text-purple-600">{(performanceStats.average_score || 0).toFixed(1)}%</div>
             <div className="text-sm text-gray-600">Avg Score</div>
           </div>
           <div className="bg-white rounded-xl p-6 shadow-md">
-            <div className="text-2xl font-bold text-orange-600">{analyticsData.overall_stats.study_streak}</div>
-            <div className="text-sm text-gray-600">Day Streak</div>
+            <div className="text-2xl font-bold text-orange-600">{wellnessStats.mindfulness_sessions || 0}</div>
+            <div className="text-sm text-gray-600">Mindfulness Sessions</div>
           </div>
         </div>
 
