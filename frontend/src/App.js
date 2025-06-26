@@ -2791,14 +2791,12 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
               <div className="text-sm text-gray-600">Sessions</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{analyticsData.wellness_data.total_mindfulness_minutes}</div>
+              <div className="text-2xl font-bold text-blue-600">{wellnessStats.mindfulness_minutes || 0}</div>
               <div className="text-sm text-gray-600">Minutes</div>
             </div>
             <div className="text-center">
               <div className="text-2xl font-bold text-purple-600">
-                {analyticsData.wellness_data.mood_trends.length > 0 
-                  ? (analyticsData.wellness_data.mood_trends.reduce((sum, m) => sum + m.improvement, 0) / analyticsData.wellness_data.mood_trends.length).toFixed(1)
-                  : '0.0'}
+                {(wellnessStats.mood_improvement || 0).toFixed(1)}
               </div>
               <div className="text-sm text-gray-600">Avg Mood Improvement</div>
             </div>
