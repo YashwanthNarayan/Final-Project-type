@@ -2251,6 +2251,291 @@ async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token
 async def root():
     return {"message": "Project K - AI Educational Chatbot API v3.0"}
 
+@api_router.get("/teacher/analytics/test-results")
+async def get_detailed_test_results(
+    class_id: Optional[str] = None,
+    student_id: Optional[str] = None,
+    subject: Optional[str] = None,
+    limit: int = 50,
+    token_data: dict = Depends(verify_token)
+):
+    """Get detailed test results with question-level analysis"""
+    try:
+        teacher_id = token_data['sub']
+        
+        # Verify teacher role
+        if token_data.get('user_type') != 'teacher':
+            raise HTTPException(status_code=403, detail="Access denied. Teacher role required.")
+        
+        # Build query for practice attempts
+        query = {}
+        
+        # Filter by class if specified
+        if class_id:
+            # Verify teacher owns this class
+            class_doc = await db.classes.find_one({"class_id": class_id, "teacher_id": teacher_id})
+            if not class_doc:
+                raise HTTPException(status_code=403, detail="Access denied to this class")
+            
+            # Get students in this class
+            student_profiles = await db.student_profiles.find({"class_id": class_id}).to_list(1000)
+            class_student_ids = [p['user_id'] for p in student_profiles]
+            query["student_id"] = {"$in": class_student_ids}
+        else:
+            # Get all students in teacher's classes
+            teacher_classes = await db.classes.find({"teacher_id": teacher_id}).to_list(100)
+            class_ids = [cls['class_id'] for cls in teacher_classes]
+            student_profiles = await db.student_profiles.find({"class_id": {"$in": class_ids}}).to_list(1000)
+            student_ids = [p['user_id'] for p in student_profiles]
+            query["student_id"] = {"$in": student_ids}
+        
+        # Filter by specific student if specified
+        if student_id:
+            # Verify this student is in teacher's classes
+            if "student_id" in query and student_id not in query["student_id"]["$in"]:
+                raise HTTPException(status_code=403, detail="Access denied to this student")
+            query["student_id"] = student_id
+        
+        # Get practice attempts
+        attempts_cursor = db.practice_attempts.find(query).sort("completed_at", -1).limit(limit)
+        attempts = await attempts_cursor.to_list(limit)
+        
+        # Enhance each attempt with detailed question analysis
+        detailed_results = []
+        for attempt in attempts:
+            # Get student info
+            student_profile = next((p for p in student_profiles if p['user_id'] == attempt['student_id']), None)
+            
+            # Get questions for this attempt
+            question_ids = attempt.get('questions', [])
+            questions = await db.practice_questions.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
+            
+            # Analyze each question
+            question_analysis = []
+            correct_count = 0
+            for question in questions:
+                student_answer = attempt['student_answers'].get(question['id'], '')
+                is_correct = question['correct_answer'].lower().strip() == student_answer.lower().strip()
+                if is_correct:
+                    correct_count += 1
+                
+                question_analysis.append({
+                    "question_id": question['id'],
+                    "question_text": question['question_text'],
+                    "question_type": question['question_type'],
+                    "topics": question.get('topics', []),
+                    "difficulty": question.get('difficulty', 'medium'),
+                    "correct_answer": question['correct_answer'],
+                    "student_answer": student_answer,
+                    "is_correct": is_correct,
+                    "explanation": question.get('explanation', '')
+                })
+            
+            # Determine subject from questions
+            test_subject = questions[0].get('subject', 'unknown') if questions else 'unknown'
+            
+            # Filter by subject if specified
+            if subject and test_subject != subject:
+                continue
+            
+            detailed_result = {
+                "attempt_id": attempt['id'],
+                "student_id": attempt['student_id'],
+                "student_name": student_profile.get('name', 'Unknown') if student_profile else 'Unknown',
+                "student_grade": student_profile.get('grade_level', 'Unknown') if student_profile else 'Unknown',
+                "subject": test_subject,
+                "score": attempt['score'],
+                "total_questions": len(question_ids),
+                "correct_answers": correct_count,
+                "incorrect_answers": len(question_ids) - correct_count,
+                "time_taken": attempt['time_taken'],
+                "completed_at": attempt['completed_at'],
+                "question_analysis": question_analysis,
+                "topics_covered": list(set([topic for q in question_analysis for topic in q.get('topics', [])]))
+            }
+            detailed_results.append(detailed_result)
+        
+        return {
+            "test_results": detailed_results,
+            "total_results": len(detailed_results),
+            "filters_applied": {
+                "class_id": class_id,
+                "student_id": student_id,
+                "subject": subject
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching detailed test results: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching test results")
+
+@api_router.get("/teacher/analytics/class-performance/{class_id}")
+async def get_class_performance_analysis(class_id: str, token_data: dict = Depends(verify_token)):
+    """Get comprehensive performance analysis for a specific class"""
+    try:
+        teacher_id = token_data['sub']
+        
+        # Verify teacher role and class ownership
+        if token_data.get('user_type') != 'teacher':
+            raise HTTPException(status_code=403, detail="Access denied. Teacher role required.")
+        
+        class_doc = await db.classes.find_one({"class_id": class_id, "teacher_id": teacher_id})
+        if not class_doc:
+            raise HTTPException(status_code=403, detail="Access denied to this class")
+        
+        # Get students in this class
+        student_profiles = await db.student_profiles.find({"class_id": class_id}).to_list(1000)
+        student_ids = [p['user_id'] for p in student_profiles]
+        
+        if not student_ids:
+            return {
+                "class_info": class_doc,
+                "student_count": 0,
+                "performance_summary": {},
+                "subject_analysis": {},
+                "struggling_topics": [],
+                "improvement_trends": {},
+                "top_performers": [],
+                "students_needing_help": []
+            }
+        
+        # Get all practice attempts for this class
+        attempts = await db.practice_attempts.find({"student_id": {"$in": student_ids}}).to_list(1000)
+        
+        # Performance summary
+        if attempts:
+            scores = [a['score'] for a in attempts]
+            performance_summary = {
+                "total_tests": len(attempts),
+                "average_score": sum(scores) / len(scores),
+                "highest_score": max(scores),
+                "lowest_score": min(scores),
+                "students_above_80": len([s for s in scores if s >= 80]),
+                "students_below_60": len([s for s in scores if s < 60])
+            }
+        else:
+            performance_summary = {
+                "total_tests": 0,
+                "average_score": 0,
+                "highest_score": 0,
+                "lowest_score": 0,
+                "students_above_80": 0,
+                "students_below_60": 0
+            }
+        
+        # Subject-wise analysis
+        subject_analysis = {}
+        for attempt in attempts:
+            # Get first question to determine subject
+            if attempt.get('questions'):
+                first_question = await db.practice_questions.find_one({"id": attempt['questions'][0]})
+                if first_question:
+                    subject = first_question.get('subject', 'unknown')
+                    if subject not in subject_analysis:
+                        subject_analysis[subject] = {
+                            "total_attempts": 0,
+                            "average_score": 0,
+                            "scores": []
+                        }
+                    subject_analysis[subject]["total_attempts"] += 1
+                    subject_analysis[subject]["scores"].append(attempt['score'])
+        
+        # Calculate subject averages
+        for subject, data in subject_analysis.items():
+            if data["scores"]:
+                data["average_score"] = sum(data["scores"]) / len(data["scores"])
+        
+        # Identify struggling topics
+        struggling_topics = await identify_struggling_topics(student_ids)
+        
+        # Student performance ranking
+        student_performance = {}
+        for profile in student_profiles:
+            student_attempts = [a for a in attempts if a['student_id'] == profile['user_id']]
+            if student_attempts:
+                avg_score = sum(a['score'] for a in student_attempts) / len(student_attempts)
+                student_performance[profile['user_id']] = {
+                    "name": profile.get('name', 'Unknown'),
+                    "average_score": avg_score,
+                    "total_tests": len(student_attempts),
+                    "profile": profile
+                }
+        
+        # Top performers and students needing help
+        sorted_students = sorted(student_performance.items(), key=lambda x: x[1]['average_score'], reverse=True)
+        top_performers = sorted_students[:5]  # Top 5
+        students_needing_help = [s for s in sorted_students if s[1]['average_score'] < 60][-5:]  # Bottom 5 scoring below 60%
+        
+        return {
+            "class_info": class_doc,
+            "student_count": len(student_profiles),
+            "performance_summary": performance_summary,
+            "subject_analysis": subject_analysis,
+            "struggling_topics": struggling_topics,
+            "improvement_trends": {},  # Can be enhanced with time-series analysis
+            "top_performers": top_performers,
+            "students_needing_help": students_needing_help
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching class performance analysis: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching class performance analysis")
+
+async def identify_struggling_topics(student_ids: list):
+    """Identify topics where students are struggling most"""
+    try:
+        # Get all practice attempts for these students
+        attempts = await db.practice_attempts.find({"student_id": {"$in": student_ids}}).to_list(1000)
+        
+        topic_performance = {}
+        
+        for attempt in attempts:
+            question_ids = attempt.get('questions', [])
+            student_answers = attempt.get('student_answers', {})
+            
+            # Get questions and analyze performance by topic
+            questions = await db.practice_questions.find({"id": {"$in": question_ids}}).to_list(len(question_ids))
+            
+            for question in questions:
+                topics = question.get('topics', ['General'])
+                is_correct = (
+                    question['correct_answer'].lower().strip() == 
+                    student_answers.get(question['id'], '').lower().strip()
+                )
+                
+                for topic in topics:
+                    if topic not in topic_performance:
+                        topic_performance[topic] = {"correct": 0, "total": 0}
+                    
+                    topic_performance[topic]["total"] += 1
+                    if is_correct:
+                        topic_performance[topic]["correct"] += 1
+        
+        # Calculate accuracy for each topic
+        topic_struggles = []
+        for topic, performance in topic_performance.items():
+            if performance["total"] >= 5:  # Only consider topics with at least 5 questions
+                accuracy = performance["correct"] / performance["total"]
+                if accuracy < 0.6:  # Less than 60% accuracy
+                    topic_struggles.append({
+                        "topic": topic,
+                        "accuracy": accuracy,
+                        "total_questions": performance["total"],
+                        "correct_answers": performance["correct"]
+                    })
+        
+        # Sort by lowest accuracy
+        topic_struggles.sort(key=lambda x: x["accuracy"])
+        return topic_struggles[:10]  # Return top 10 struggling topics
+        
+    except Exception as e:
+        logger.error(f"Error identifying struggling topics: {str(e)}")
+        return []
+
 @api_router.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow(), "version": "3.0"}
