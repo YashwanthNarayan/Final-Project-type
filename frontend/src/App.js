@@ -432,7 +432,213 @@ const AuthPortal = ({ onAuthSuccess }) => {
       </div>
     );
   }
-const NotesComponent = ({ student, onNavigate }) => {
+  
+  // View Note View
+  if (currentView === 'view' && selectedNote) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center mb-8">
+            <button
+              onClick={() => setCurrentView('library')}
+              className="text-indigo-600 hover:text-indigo-700 mr-4"
+            >
+              ← Back to Library
+            </button>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-gray-900">{selectedNote.topic}</h1>
+              <div className="flex items-center text-gray-600">
+                <span className="mr-2">{getSubjectIcon(selectedNote.subject)}</span>
+                <span className="capitalize">{selectedNote.subject}</span>
+                <span className="mx-2">•</span>
+                <span>{new Date(selectedNote.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => toggleFavorite(selectedNote.id)}
+                className="p-2 rounded-full hover:bg-gray-100"
+                title={selectedNote.is_favorite ? "Remove from favorites" : "Add to favorites"}
+              >
+                {selectedNote.is_favorite ? (
+                  <span className="text-2xl">⭐</span>
+                ) : (
+                  <span className="text-2xl">☆</span>
+                )}
+              </button>
+              <button
+                onClick={() => deleteNote(selectedNote.id)}
+                className="p-2 rounded-full hover:bg-gray-100"
+                title="Delete note"
+              >
+                <span className="text-2xl">🗑️</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div 
+              className="prose prose-indigo max-w-none"
+              dangerouslySetInnerHTML={{ __html: `<p class="text-gray-700 mb-3">${formatNoteContent(selectedNote.content)}</p>` }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Library View (Default)
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <button
+              onClick={() => onNavigate('student-dashboard')}
+              className="text-indigo-600 hover:text-indigo-700 mr-4"
+            >
+              ← Back
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">📚 My Notes</h1>
+              <p className="text-gray-600">Your personal study notes library</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setCurrentView('generate')}
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all"
+          >
+            Generate New Notes
+          </button>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-xl shadow-md p-4 mb-6">
+          <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+            <div className="flex-1">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search notes..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <div className="absolute left-3 top-2.5 text-gray-400">🔍</div>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <select
+                value={filterSubject}
+                onChange={(e) => setFilterSubject(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="">All Subjects</option>
+                {subjects.map(subject => (
+                  <option key={subject} value={subject}>
+                    {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                  </option>
+                ))}
+              </select>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={showFavoritesOnly}
+                  onChange={(e) => setShowFavoritesOnly(e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                />
+                <span className="text-gray-700">Favorites only</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Notes Grid */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : filteredNotes.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredNotes.map(note => (
+              <div
+                key={note.id}
+                className="bg-white rounded-xl shadow-md hover:shadow-lg transition-all duration-200 overflow-hidden cursor-pointer"
+                onClick={() => viewNote(note.id)}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center mr-3">
+                        <span className="text-xl">{getSubjectIcon(note.subject)}</span>
+                      </div>
+                      <div>
+                        <div className="text-sm text-gray-600 capitalize">{note.subject}</div>
+                        <div className="text-xs text-gray-500">{new Date(note.created_at).toLocaleDateString()}</div>
+                      </div>
+                    </div>
+                    {note.is_favorite && <div className="text-yellow-500">⭐</div>}
+                  </div>
+                  <h3 className="font-bold text-gray-900 mb-2 line-clamp-2">{note.topic}</h3>
+                  <p className="text-gray-600 text-sm line-clamp-3">{note.content.replace(/#+\s|[*_]/g, '')}</p>
+                </div>
+                <div className="px-6 py-3 bg-gray-50 flex justify-between items-center">
+                  <div className="text-xs text-gray-500">
+                    {note.note_type === 'comprehensive' && 'Comprehensive Notes'}
+                    {note.note_type === 'summary' && 'Summary Notes'}
+                    {note.note_type === 'quick_reference' && 'Quick Reference'}
+                  </div>
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(note.id);
+                      }}
+                      className="text-gray-400 hover:text-yellow-500"
+                    >
+                      {note.is_favorite ? '⭐' : '☆'}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteNote(note.id);
+                      }}
+                      className="text-gray-400 hover:text-red-500"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-md p-8 text-center">
+            <div className="text-6xl mb-4">📝</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">No notes found</h3>
+            <p className="text-gray-600 mb-6">
+              {searchTerm || filterSubject || showFavoritesOnly
+                ? "No notes match your current filters. Try adjusting your search or filters."
+                : "You haven't created any notes yet. Click the 'Generate New Notes' button to get started!"}
+            </p>
+            {(searchTerm || filterSubject || showFavoritesOnly) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterSubject('');
+                  setShowFavoritesOnly(false);
+                }}
+                className="text-indigo-600 hover:text-indigo-700"
+              >
+                Clear all filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
   const [currentView, setCurrentView] = useState('library'); // library, generate, view
   const [notes, setNotes] = useState([]);
   const [selectedNote, setSelectedNote] = useState(null);
