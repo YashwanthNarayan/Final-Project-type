@@ -203,8 +203,7 @@ metadata:
 test_plan:
   current_focus:
     - "Notes Management APIs"
-  stuck_tasks:
-    - "Notes Management APIs"
+  stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
