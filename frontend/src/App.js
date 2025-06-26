@@ -203,7 +203,238 @@ const AuthPortal = ({ onAuthSuccess }) => {
   );
 };
 
-// Practice Tests Component
+// Notes Component
+const NotesComponent = ({ student, onNavigate }) => {
+  const [currentView, setCurrentView] = useState('library'); // library, generate, view
+  const [notes, setNotes] = useState([]);
+  const [selectedNote, setSelectedNote] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterSubject, setFilterSubject] = useState('');
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+
+  // Note generation form
+  const [noteForm, setNoteForm] = useState({
+    subject: '',
+    topic: '',
+    note_type: 'comprehensive'
+  });
+
+  const subjects = ['math', 'physics', 'chemistry', 'biology', 'english', 'history', 'geography'];
+  const noteTypes = [
+    { id: 'comprehensive', name: 'Comprehensive Notes', description: 'Detailed notes with examples and explanations' },
+    { id: 'summary', name: 'Summary Notes', description: 'Concise overview of key points' },
+    { id: 'quick_reference', name: 'Quick Reference', description: 'Essential formulas and facts' }
+  ];
+
+  useEffect(() => {
+    if (currentView === 'library') {
+      loadNotes();
+    }
+  }, [currentView, filterSubject, showFavoritesOnly]);
+
+  const loadNotes = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filterSubject) params.append('subject', filterSubject);
+      if (showFavoritesOnly) params.append('favorites_only', 'true');
+      
+      const response = await axios.get(`${API_BASE}/api/notes?${params}`);
+      setNotes(response.data);
+    } catch (error) {
+      console.error('Error loading notes:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const generateNotes = async () => {
+    if (!noteForm.subject || !noteForm.topic.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      const response = await axios.post(`${API_BASE}/api/notes/generate`, {
+        subject: noteForm.subject,
+        topic: noteForm.topic.trim(),
+        note_type: noteForm.note_type
+      });
+
+      // Show the generated note
+      setSelectedNote(response.data);
+      setCurrentView('view');
+      
+      // Reset form
+      setNoteForm({ subject: '', topic: '', note_type: 'comprehensive' });
+      
+      // Reload notes library
+      setTimeout(() => loadNotes(), 1000);
+      
+    } catch (error) {
+      console.error('Error generating notes:', error);
+      alert('Error generating notes. Please try again.');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const viewNote = async (noteId) => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/notes/${noteId}`);
+      setSelectedNote(response.data);
+      setCurrentView('view');
+    } catch (error) {
+      console.error('Error loading note:', error);
+    }
+  };
+
+  const toggleFavorite = async (noteId) => {
+    try {
+      await axios.put(`${API_BASE}/api/notes/${noteId}/favorite`);
+      loadNotes(); // Reload to reflect changes
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    }
+  };
+
+  const deleteNote = async (noteId) => {
+    if (!confirm('Are you sure you want to delete this note?')) return;
+    
+    try {
+      await axios.delete(`${API_BASE}/api/notes/${noteId}`);
+      loadNotes(); // Reload to reflect changes
+      if (selectedNote && selectedNote.id === noteId) {
+        setCurrentView('library');
+        setSelectedNote(null);
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
+  };
+
+  const getSubjectIcon = (subject) => {
+    const icons = {
+      math: '🧮', physics: '⚡', chemistry: '🧪', biology: '🧬',
+      english: '📖', history: '🏛️', geography: '🌍'
+    };
+    return icons[subject] || '📝';
+  };
+
+  const formatNoteContent = (content) => {
+    // Convert markdown-like formatting to HTML
+    return content
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold text-gray-900 mb-4">$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold text-gray-800 mb-3 mt-6">$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-semibold text-gray-700 mb-2 mt-4">$1</h3>')
+      .replace(/^\* (.+)$/gm, '<li class="text-gray-700 mb-1">$1</li>')
+      .replace(/^- (.+)$/gm, '<li class="text-gray-700 mb-1">$1</li>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+      .replace(/\n\n/g, '</p><p class="text-gray-700 mb-3">')
+      .replace(/\n/g, '<br>');
+  };
+
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = searchTerm === '' || 
+      note.topic.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
+
+  // Generate Notes View
+  if (currentView === 'generate') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center mb-8">
+            <button
+              onClick={() => setCurrentView('library')}
+              className="text-indigo-600 hover:text-indigo-700 mr-4"
+            >
+              ← Back to Library
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">📝 Generate Notes</h1>
+              <p className="text-gray-600">Create comprehensive study notes for any topic</p>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-8">
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
+                <select
+                  value={noteForm.subject}
+                  onChange={(e) => setNoteForm(prev => ({ ...prev, subject: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Choose a subject</option>
+                  {subjects.map(subject => (
+                    <option key={subject} value={subject}>
+                      {getSubjectIcon(subject)} {subject.charAt(0).toUpperCase() + subject.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Topic *</label>
+                <input
+                  type="text"
+                  value={noteForm.topic}
+                  onChange={(e) => setNoteForm(prev => ({ ...prev, topic: e.target.value }))}
+                  placeholder="e.g., Quadratic Equations, Photosynthesis, World War II"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Note Type</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {noteTypes.map(type => (
+                    <button
+                      key={type.id}
+                      onClick={() => setNoteForm(prev => ({ ...prev, note_type: type.id }))}
+                      className={`p-4 rounded-lg border-2 text-left transition-all ${
+                        noteForm.note_type === type.id
+                          ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="font-medium mb-1">{type.name}</div>
+                      <div className="text-sm text-gray-600">{type.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <button
+                  onClick={generateNotes}
+                  disabled={generating || !noteForm.subject || !noteForm.topic.trim()}
+                  className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-4 rounded-lg hover:from-indigo-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {generating ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                      Generating Notes...
+                    </div>
+                  ) : (
+                    'Generate Notes'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Practice Tests Component
 const PracticeTestsComponent = ({ student, onNavigate }) => {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTopics, setSelectedTopics] = useState([]);
