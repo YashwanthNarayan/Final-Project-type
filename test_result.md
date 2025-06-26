@@ -118,11 +118,11 @@ backend:
 
   - task: "Notes Management APIs"
     implemented: true
-    working: false
+    working: true
     file: "backend/server.py"
-    stuck_count: 1
+    stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
         - working: "NA"
           agent: "main"
@@ -130,6 +130,9 @@ backend:
         - working: false
           agent: "testing"
           comment: "The notes management APIs (/api/notes, /api/notes/{note_id}) are returning 500 Internal Server Error. The error logs show an issue with MongoDB ObjectId serialization: 'ObjectId' object is not iterable. This is likely due to the notes being stored with MongoDB's native ObjectId but not being properly converted to string IDs when returned in the API response."
+        - working: true
+          agent: "testing"
+          comment: "The ObjectId serialization issue has been fixed. The notes management APIs (/api/notes, /api/notes/{note_id}) are now working correctly. All notes are properly retrieved with correct serialization of MongoDB ObjectIds to strings. The APIs also support filtering by subject, searching by keywords, and filtering by favorite status. The complete notes workflow (generate, retrieve, favorite, delete) is working as expected."
 
   - task: "Notes Actions"
     implemented: true
