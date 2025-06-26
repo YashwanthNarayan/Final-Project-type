@@ -2900,7 +2900,7 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
         </div>
 
         {/* Additional Quick Actions Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <button
             onClick={() => onNavigate('progress')}
             className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
@@ -2908,6 +2908,14 @@ const StudentDashboard = ({ student, onNavigate, dashboardData, onLogout }) => {
             <div className="text-3xl mb-3">📊</div>
             <h3 className="font-semibold text-gray-900 mb-2">Progress Tracker</h3>
             <p className="text-sm text-gray-600">View your learning progress and achievements</p>
+          </button>
+          <button
+            onClick={() => onNavigate('notes')}
+            className="bg-white rounded-xl p-6 shadow-md hover:shadow-lg transition-all duration-200 text-left"
+          >
+            <div className="text-3xl mb-3">📚</div>
+            <h3 className="font-semibold text-gray-900 mb-2">My Notes</h3>
+            <p className="text-sm text-gray-600">Access your study notes library</p>
           </button>
           <button
             onClick={() => onNavigate('notifications')}
