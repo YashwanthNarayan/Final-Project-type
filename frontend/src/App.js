@@ -2672,10 +2672,10 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
                           <div className="text-lg font-bold text-green-600">{performance.total_tests || 0}</div>
                           <div className="text-xs text-gray-600">Tests</div>
                         </div>
-                    <div>
-                      <div className="text-lg font-bold text-purple-600">{data.performance.average_score}%</div>
-                      <div className="text-xs text-gray-600">Avg Score</div>
-                    </div>
+                        <div>
+                          <div className="text-lg font-bold text-purple-600">{performance.average_score || 0}%</div>
+                          <div className="text-xs text-gray-600">Avg Score</div>
+                        </div>
                   </div>
                 </div>
               </div>
