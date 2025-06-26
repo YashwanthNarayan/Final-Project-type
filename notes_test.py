@@ -61,29 +61,34 @@ class TestNotesGenerationSystem(unittest.TestCase):
         if self.student_token and not self.note_ids:
             self.generate_initial_notes()
 
-    def register_student(self):
-        """Register a student for testing"""
-        print("\n🔍 Setting up student account...")
-        url = f"{API_URL}/auth/register"
-        payload = {
-            "email": f"student_notes_{uuid.uuid4()}@example.com",
-            "password": "SecurePass123!",
-            "name": "Priya Sharma",
-            "user_type": UserType.STUDENT.value,
-            "grade_level": GradeLevel.GRADE_10.value
-        }
+    def generate_initial_notes(self):
+        """Generate initial notes for testing"""
+        print("\n🔍 Generating initial notes for testing...")
         
-        try:
-            response = requests.post(url, json=payload)
-            if response.status_code == 200:
-                data = response.json()
-                self.student_token = data.get("access_token")
-                self.student_id = data.get("user", {}).get("id")
-                print(f"Registered student with ID: {self.student_id}")
-            else:
-                print(f"Failed to register student: {response.status_code} - {response.text}")
-        except Exception as e:
-            print(f"Error registering student: {str(e)}")
+        subjects = [Subject.MATH.value, Subject.PHYSICS.value]
+        topics = ["Algebra", "Mechanics"]
+        
+        for i, subject in enumerate(subjects):
+            url = f"{API_URL}/notes/generate"
+            headers = {"Authorization": f"Bearer {self.student_token}"}
+            payload = {
+                "subject": subject,
+                "topic": topics[i],
+                "note_type": "comprehensive"
+            }
+            
+            try:
+                response = requests.post(url, json=payload, headers=headers)
+                if response.status_code == 200:
+                    data = response.json()
+                    note_id = data.get("note_id")
+                    if note_id:
+                        self.note_ids.append(note_id)
+                        print(f"Generated initial note with ID: {note_id}")
+            except Exception as e:
+                print(f"Error generating initial note: {str(e)}")
+                
+        print(f"Generated {len(self.note_ids)} initial notes for testing")
 
     def test_01_generate_notes_math(self):
         """Test generating notes for math subject"""
