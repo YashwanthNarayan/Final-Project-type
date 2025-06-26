@@ -2564,14 +2564,14 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
                         <span className="text-sm text-gray-600">{item.count || 0} questions ({percentage}%)</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
-                        style={{ width: `${percentage}%` }}
-                      ></div>
+                        <div
+                          className="bg-indigo-600 h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
+                );
             })}
           </div>
         </div>
