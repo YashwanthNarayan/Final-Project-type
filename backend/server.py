@@ -2159,88 +2159,92 @@ async def delete_note(note_id: str, token_data: dict = Depends(verify_token)):
 @api_router.get("/teacher/analytics/overview")
 async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token)):
     """Get teacher's overall analytics across all classes"""
-    if token_data.get('user_type') != 'teacher':
-        raise HTTPException(status_code=403, detail="Teacher access required")
-    
-    # Get all teacher's classes
-    classes = await db.classrooms.find({"teacher_id": token_data['sub']}).to_list(100)
-    
-    # Get all students across all classes
-    all_student_ids = []
-    class_summary = []
-    
-    for cls in classes:
-        student_ids = cls.get('students', [])
-        all_student_ids.extend(student_ids)
+    try:
+        teacher_id = token_data['sub']
         
-        # Get basic stats for each class
-        student_profiles = await db.student_profiles.find({"user_id": {"$in": student_ids}}).to_list(100)
-        avg_xp = sum(p.get('total_xp', 0) for p in student_profiles) / len(student_profiles) if student_profiles else 0
+        # Verify teacher role
+        if token_data.get('user_type') != 'teacher':
+            raise HTTPException(status_code=403, detail="Access denied. Teacher role required.")
         
-        # Get recent activity count
-        recent_activity_count = await db.chat_messages.count_documents({
-            "student_id": {"$in": student_ids},
-            "timestamp": {"$gte": datetime.utcnow() - timedelta(days=7)}
-        })
+        # Get teacher's classes
+        teacher_classes_cursor = db.classes.find({"teacher_id": teacher_id})
+        teacher_classes = await teacher_classes_cursor.to_list(100)
+        class_ids = [cls['class_id'] for cls in teacher_classes]
         
-        class_summary.append({
-            "class_info": ClassRoom(**cls),
-            "student_count": len(student_ids),
-            "average_xp": round(avg_xp, 1),
-            "weekly_activity": recent_activity_count
-        })
-    
-    unique_student_ids = list(set(all_student_ids))
-    
-    # Overall metrics
-    total_messages = await db.chat_messages.count_documents({"student_id": {"$in": unique_student_ids}})
-    total_tests = await db.practice_attempts.count_documents({"student_id": {"$in": unique_student_ids}})
-    
-    # Get average scores
-    avg_score_pipeline = await db.practice_attempts.aggregate([
-        {"$match": {"student_id": {"$in": unique_student_ids}}},
-        {"$group": {"_id": None, "avg_score": {"$avg": "$score"}}}
-    ]).to_list(1)
-    avg_score = avg_score_pipeline[0].get('avg_score', 0) if avg_score_pipeline else 0
-    
-    # Get subject distribution
-    subject_distribution = await db.chat_messages.aggregate([
-        {"$match": {"student_id": {"$in": unique_student_ids}}},
-        {"$group": {"_id": "$subject", "count": {"$sum": 1}}}
-    ]).to_list(10)
-    
-    # Get weekly activity trend
-    weekly_activity = await db.chat_messages.aggregate([
-        {
-            "$match": {
-                "student_id": {"$in": unique_student_ids},
-                "timestamp": {"$gte": datetime.utcnow() - timedelta(days=30)}
-            }
-        },
-        {
-            "$group": {
-                "_id": {
-                    "week": {"$week": "$timestamp"},
-                    "year": {"$year": "$timestamp"}
-                },
-                "count": {"$sum": 1}
-            }
-        },
-        {"$sort": {"_id.year": 1, "_id.week": 1}}
-    ]).to_list(10)
-    
-    return {
-        "overview_metrics": {
-            "total_classes": len(classes),
-            "total_students": len(unique_student_ids),
-            "total_messages": total_messages,
-            "total_tests": total_tests,
-            "average_score": round(avg_score, 1)
-        },
-        "class_summary": class_summary,
-        "subject_distribution": [{"subject": item["_id"], "count": item["count"]} for item in subject_distribution],
-        "weekly_activity_trend": [{"week": f"{item['_id']['year']}-W{item['_id']['week']}", "count": item["count"]} for item in weekly_activity]
-    }
+        # Get all students in teacher's classes
+        student_profiles_cursor = db.student_profiles.find({"class_id": {"$in": class_ids}})
+        student_profiles = await student_profiles_cursor.to_list(1000)
+        student_ids = [profile['user_id'] for profile in student_profiles]
+        
+        # Basic metrics
+        total_classes = len(teacher_classes)
+        total_students = len(student_profiles)
+        
+        # Get chat messages from students
+        total_messages = await db.chat_messages.count_documents({"student_id": {"$in": student_ids}})
+        
+        # Get practice test attempts
+        practice_attempts_cursor = db.practice_attempts.find({"student_id": {"$in": student_ids}})
+        practice_attempts = await practice_attempts_cursor.to_list(1000)
+        total_tests = len(practice_attempts)
+        
+        # Calculate average score
+        if practice_attempts:
+            total_score = sum(attempt['score'] for attempt in practice_attempts)
+            average_score = total_score / total_tests
+        else:
+            average_score = 0
+        
+        # Subject distribution
+        subject_pipeline = [
+            {"$match": {"student_id": {"$in": student_ids}}},
+            {"$group": {"_id": "$subject", "count": {"$sum": 1}}}
+        ]
+        subject_distribution = await db.chat_messages.aggregate(subject_pipeline).to_list(100)
+        
+        # Class summary with performance metrics
+        class_summary = []
+        for class_data in teacher_classes:
+            class_students = [p for p in student_profiles if p.get('class_id') == class_data['class_id']]
+            class_student_ids = [p['user_id'] for p in class_students]
+            
+            if class_student_ids:
+                # Get class practice attempts
+                class_attempts = [a for a in practice_attempts if a['student_id'] in class_student_ids]
+                class_messages = await db.chat_messages.count_documents({"student_id": {"$in": class_student_ids}})
+                
+                # Calculate class metrics
+                class_avg_score = sum(a['score'] for a in class_attempts) / len(class_attempts) if class_attempts else 0
+                class_total_xp = sum(p.get('total_xp', 0) for p in class_students)
+                class_avg_xp = class_total_xp / len(class_students) if class_students else 0
+                
+                class_summary.append({
+                    "class_info": class_data,
+                    "student_count": len(class_students),
+                    "average_xp": class_avg_xp,
+                    "average_score": class_avg_score,
+                    "total_tests": len(class_attempts),
+                    "weekly_activity": class_messages
+                })
+        
+        return {
+            "overview_metrics": {
+                "total_classes": total_classes,
+                "total_students": total_students,
+                "total_messages": total_messages,
+                "total_tests": total_tests,
+                "average_score": average_score
+            },
+            "class_summary": class_summary,
+            "subject_distribution": subject_distribution,
+            "weekly_activity_trend": []  # Can be enhanced later
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching teacher analytics overview: {str(e)}")
+        raise HTTPException(status_code=500, detail="Error fetching analytics overview")
 
 # Health check routes
 @api_router.get("/")
