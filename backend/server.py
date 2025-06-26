@@ -322,6 +322,24 @@ class PracticeTestRequest(BaseModel):
     question_types: Optional[List[QuestionType]] = None  # Allow filtering by question types
     exclude_seen: bool = True  # Whether to exclude previously seen questions
 
+class StudentNote(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    student_id: str
+    subject: Subject
+    topic: str
+    grade_level: str
+    note_type: str = "comprehensive"  # comprehensive, summary, quick_reference
+    content: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    last_accessed: datetime = Field(default_factory=datetime.utcnow)
+    is_favorite: bool = False
+    tags: List[str] = []
+
+class NotesRequest(BaseModel):
+    subject: Subject
+    topic: str
+    note_type: str = "comprehensive"  # comprehensive, summary, quick_reference
+
 class StudentQuestionHistory(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     student_id: str
