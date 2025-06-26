@@ -991,6 +991,7 @@ subject_bots = {
     Subject.GEOGRAPHY: SubjectBot(Subject.GEOGRAPHY)
 }
 practice_bot = PracticeTestBot()
+notes_bot = NotesGeneratorBot()
 
 # Authentication Routes
 async def get_student_seen_questions(student_id: str, subject_name: str = None):
