@@ -2063,6 +2063,9 @@ async def get_student_notes(
         notes_cursor = db.student_notes.find(query).sort("created_at", -1)
         notes = await notes_cursor.to_list(100)
         
+        # Convert ObjectId to string for JSON serialization
+        notes = [convert_objectid_to_str(note) for note in notes]
+        
         # Filter by search term if provided
         if search:
             search_lower = search.lower()
