@@ -2098,6 +2098,9 @@ async def get_note_details(note_id: str, token_data: dict = Depends(verify_token
             {"$set": {"last_accessed": datetime.utcnow()}}
         )
         
+        # Convert ObjectId to string for JSON serialization
+        note = convert_objectid_to_str(note)
+        
         return note
         
     except HTTPException:
