@@ -1984,6 +1984,160 @@ async def get_student_detailed_analytics(student_id: str, token_data: dict = Dep
         }
     }
 
+# Notes Generation Endpoints
+@api_router.post("/notes/generate")
+async def generate_notes(request: NotesRequest, token_data: dict = Depends(verify_token)):
+    """Generate comprehensive notes for a topic"""
+    try:
+        # Get student profile for grade level
+        student_profile = await db.student_profiles.find_one({"user_id": token_data['sub']})
+        grade_level = student_profile.get('grade_level', '10th') if student_profile else '10th'
+        
+        # Generate notes using the notes bot
+        notes_content = await notes_bot.generate_notes(
+            request.subject.value,
+            request.topic,
+            grade_level,
+            request.note_type
+        )
+        
+        # Create and save the note
+        note = StudentNote(
+            student_id=token_data['sub'],
+            subject=request.subject,
+            topic=request.topic,
+            grade_level=grade_level,
+            note_type=request.note_type,
+            content=notes_content
+        )
+        
+        # Save to database
+        await db.student_notes.insert_one(note.dict())
+        
+        # Award XP for generating notes
+        await award_xp(token_data['sub'], 3, f"Generated notes for {request.topic} in {request.subject.value}")
+        
+        return {
+            "note_id": note.id,
+            "subject": note.subject.value,
+            "topic": note.topic,
+            "content": notes_content,
+            "created_at": note.created_at
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating notes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating notes: {str(e)}")
+
+@api_router.get("/notes")
+async def get_student_notes(
+    subject: Optional[str] = None,
+    search: Optional[str] = None,
+    favorites_only: bool = False,
+    token_data: dict = Depends(verify_token)
+):
+    """Get all notes for a student with optional filtering"""
+    try:
+        # Build query
+        query = {"student_id": token_data['sub']}
+        
+        if subject:
+            query["subject"] = subject
+            
+        if favorites_only:
+            query["is_favorite"] = True
+            
+        # Get notes
+        notes_cursor = db.student_notes.find(query).sort("created_at", -1)
+        notes = await notes_cursor.to_list(100)
+        
+        # Filter by search term if provided
+        if search:
+            search_lower = search.lower()
+            notes = [
+                note for note in notes
+                if search_lower in note['topic'].lower() or search_lower in note['content'].lower()
+            ]
+        
+        return notes
+        
+    except Exception as e:
+        logger.error(f"Error fetching notes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching notes: {str(e)}")
+
+@api_router.get("/notes/{note_id}")
+async def get_note_details(note_id: str, token_data: dict = Depends(verify_token)):
+    """Get detailed view of a specific note"""
+    try:
+        note = await db.student_notes.find_one({
+            "id": note_id,
+            "student_id": token_data['sub']
+        })
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        # Update last accessed time
+        await db.student_notes.update_one(
+            {"id": note_id},
+            {"$set": {"last_accessed": datetime.utcnow()}}
+        )
+        
+        return note
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error fetching note details: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error fetching note details: {str(e)}")
+
+@api_router.put("/notes/{note_id}/favorite")
+async def toggle_note_favorite(note_id: str, token_data: dict = Depends(verify_token)):
+    """Toggle favorite status of a note"""
+    try:
+        note = await db.student_notes.find_one({
+            "id": note_id,
+            "student_id": token_data['sub']
+        })
+        
+        if not note:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        new_favorite_status = not note.get('is_favorite', False)
+        
+        await db.student_notes.update_one(
+            {"id": note_id},
+            {"$set": {"is_favorite": new_favorite_status}}
+        )
+        
+        return {"note_id": note_id, "is_favorite": new_favorite_status}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error toggling favorite: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error toggling favorite: {str(e)}")
+
+@api_router.delete("/notes/{note_id}")
+async def delete_note(note_id: str, token_data: dict = Depends(verify_token)):
+    """Delete a student note"""
+    try:
+        result = await db.student_notes.delete_one({
+            "id": note_id,
+            "student_id": token_data['sub']
+        })
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Note not found")
+        
+        return {"message": "Note deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting note: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting note: {str(e)}")
+
 @api_router.get("/teacher/analytics/overview")
 async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token)):
     """Get teacher's overall analytics across all classes"""
