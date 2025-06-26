@@ -698,6 +698,134 @@ class SubjectBot:
         
         return response_text
 
+class NotesGeneratorBot:
+    def __init__(self):
+        self.api_key = os.environ.get('GEMINI_API_KEY')
+        
+    async def generate_notes(self, subject: str, topic: str, grade_level: str = "10th", note_type: str = "comprehensive"):
+        """Generate comprehensive notes for a given subject and topic"""
+        
+        # Generate cache key for notes
+        cache_key = get_cache_key(f"notes_{subject}_{topic}_{grade_level}_{note_type}", "notes")
+        
+        # Check cache first
+        cached_notes = get_cached_response(cache_key)
+        if cached_notes:
+            logger.info(f"Using cached notes for {subject} - {topic}")
+            return cached_notes
+        
+        # Subject-specific note formatting
+        subject_guidance = {
+            "math": {
+                "focus": "formulas, step-by-step solutions, examples, practice problems",
+                "structure": "Definition → Formula → Examples → Practice Problems → Key Points"
+            },
+            "physics": {
+                "focus": "concepts, laws, formulas, real-world applications, diagrams",
+                "structure": "Concept → Laws/Principles → Formulas → Applications → Examples"
+            },
+            "chemistry": {
+                "focus": "chemical reactions, molecular structures, periodic trends, equations",
+                "structure": "Theory → Chemical Equations → Properties → Reactions → Applications"
+            },
+            "biology": {
+                "focus": "processes, systems, classifications, diagrams, functions",
+                "structure": "Overview → Detailed Process → Functions → Examples → Summary"
+            },
+            "english": {
+                "focus": "grammar rules, literary devices, examples, writing techniques",
+                "structure": "Concept → Rules → Examples → Usage → Practice"
+            },
+            "history": {
+                "focus": "events, dates, causes, effects, key figures, timeline",
+                "structure": "Background → Key Events → Important Figures → Causes & Effects → Significance"
+            },
+            "geography": {
+                "focus": "locations, climate, features, human impact, maps",
+                "structure": "Location → Physical Features → Climate → Human Geography → Importance"
+            }
+        }
+        
+        guidance = subject_guidance.get(subject.lower(), {
+            "focus": "key concepts, definitions, examples, applications",
+            "structure": "Introduction → Main Concepts → Examples → Summary"
+        })
+        
+        system_prompt = f"""You are the Notes Generator Bot of Project K, specialized in creating comprehensive, well-structured study notes.
+
+Subject: {subject.title()}
+Topic: {topic}
+Grade Level: {grade_level}
+Note Type: {note_type}
+
+TASK: Generate detailed, student-friendly notes that are perfect for studying and revision.
+
+FORMATTING REQUIREMENTS:
+1. Use clear headings and subheadings
+2. Include bullet points and numbered lists
+3. Add examples and illustrations where helpful
+4. Use simple, clear language appropriate for {grade_level} students
+5. Structure: {guidance['structure']}
+6. Focus Areas: {guidance['focus']}
+
+CONTENT GUIDELINES:
+- Make notes comprehensive but concise
+- Include key definitions and important terms
+- Add memory aids, mnemonics, or tips where helpful
+- Include practice questions or examples at the end
+- Ensure NCERT curriculum alignment for Indian students
+- Use markdown formatting for better readability
+
+QUALITY STANDARDS:
+- Notes should be self-contained and complete
+- Should help students understand the topic thoroughly
+- Include both theoretical knowledge and practical applications
+- Add cross-references to related topics where relevant
+
+Generate notes that students can directly use for studying, revision, and exam preparation."""
+
+        genai.configure(api_key=self.api_key)
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        try:
+            response = await asyncio.to_thread(
+                model.generate_content,
+                f"System: {system_prompt}\n\nGenerate comprehensive notes for: {topic} in {subject}"
+            )
+            
+            notes_content = response.text
+            
+            # Cache the generated notes
+            cache_response(cache_key, notes_content)
+            logger.info(f"Generated and cached notes for {subject} - {topic}")
+            
+            return notes_content
+            
+        except Exception as e:
+            logger.error(f"Error generating notes: {str(e)}")
+            # Fallback basic notes structure
+            return f"""# {topic} - {subject.title()} Notes
+
+## Overview
+This topic covers important concepts in {subject}. 
+
+## Key Points
+- Main concept 1
+- Main concept 2
+- Main concept 3
+
+## Important Definitions
+- Term 1: Definition
+- Term 2: Definition
+
+## Examples
+[Examples would be provided here]
+
+## Summary
+[Key takeaways and summary points]
+
+*Note: Detailed notes generation temporarily unavailable. Please try again later.*"""
+
 class PracticeTestBot:
     def __init__(self):
         self.api_key = os.environ.get('GEMINI_API_KEY')
