@@ -56,6 +56,10 @@ class TestNotesGenerationSystem(unittest.TestCase):
         
         # Register student
         self.register_student()
+        
+        # Generate some initial notes if needed
+        if self.student_token and not self.note_ids:
+            self.generate_initial_notes()
 
     def register_student(self):
         """Register a student for testing"""
