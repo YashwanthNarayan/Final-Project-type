@@ -20,6 +20,18 @@ import bcrypt
 import json
 import random
 import string
+from bson import ObjectId
+
+# Custom JSON encoder for MongoDB ObjectId
+def convert_objectid_to_str(data):
+    """Convert MongoDB ObjectId to string for JSON serialization"""
+    if isinstance(data, ObjectId):
+        return str(data)
+    elif isinstance(data, dict):
+        return {key: convert_objectid_to_str(value) for key, value in data.items()}
+    elif isinstance(data, list):
+        return [convert_objectid_to_str(item) for item in data]
+    return data
 
 # Simple in-memory cache (in production, use Redis)
 api_cache = {}
