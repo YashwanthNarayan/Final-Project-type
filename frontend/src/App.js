@@ -2572,8 +2572,9 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
                     </div>
                   </div>
                 );
-            })}
-          </div>
+              })}
+            </div>
+          )}
         </div>
       </div>
     );
