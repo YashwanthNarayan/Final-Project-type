@@ -665,7 +665,7 @@ const NotesComponent = ({ student, onNavigate }) => {
     );
   }
 
-  // Practice Tests Component
+  // Notes Component
 const PracticeTestsComponent = ({ student, onNavigate }) => {
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedTopics, setSelectedTopics] = useState([]);
