@@ -2739,37 +2739,47 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
         {/* Subject Breakdown */}
         <div className="bg-white rounded-xl p-6 shadow-md">
           <h3 className="text-xl font-bold text-gray-900 mb-6">Subject Performance</h3>
-          <div className="space-y-4">
-            {Object.entries(analyticsData.subject_analytics).map(([subject, data]) => (
-              data.total_messages > 0 && (
-                <div key={subject} className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center space-x-3">
-                      <div className="text-2xl">{getSubjectIcon(subject)}</div>
-                      <h4 className="font-semibold capitalize">{subject}</h4>
+          {Object.keys(subjectProgress).length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">📚</div>
+              <p>No subject activity data available yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {Object.entries(subjectProgress).map(([subject, data]) => {
+                const subjectData = data || {};
+                return (
+                  (subjectData.total_messages || 0) > 0 && (
+                    <div key={subject} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-3">
+                          <div className="text-2xl">{getSubjectIcon(subject)}</div>
+                          <h4 className="font-semibold capitalize">{subject}</h4>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {subjectData.last_activity ? new Date(subjectData.last_activity).toLocaleDateString() : 'No activity'}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-lg font-bold text-blue-600">{subjectData.total_messages || 0}</div>
+                          <div className="text-xs text-gray-600">Questions</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-green-600">{subjectData.total_tests || 0}</div>
+                          <div className="text-xs text-gray-600">Tests</div>
+                        </div>
+                        <div>
+                          <div className="text-lg font-bold text-purple-600">{(subjectData.average_score || 0).toFixed(1)}%</div>
+                          <div className="text-xs text-gray-600">Avg Score</div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-sm text-gray-500">
-                      {data.last_activity ? new Date(data.last_activity).toLocaleDateString() : 'No activity'}
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
-                    <div>
-                      <div className="text-lg font-bold text-blue-600">{data.total_messages}</div>
-                      <div className="text-xs text-gray-600">Questions</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-green-600">{data.total_tests}</div>
-                      <div className="text-xs text-gray-600">Tests</div>
-                    </div>
-                    <div>
-                      <div className="text-lg font-bold text-purple-600">{data.average_score.toFixed(1)}%</div>
-                      <div className="text-xs text-gray-600">Avg Score</div>
-                    </div>
-                  </div>
-                </div>
-              )
-            ))}
-          </div>
+                  )
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Wellness Data */}
@@ -2777,7 +2787,7 @@ const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
           <h3 className="text-xl font-bold text-gray-900 mb-6">Wellness & Mindfulness</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{analyticsData.wellness_data.mindfulness_sessions}</div>
+              <div className="text-2xl font-bold text-green-600">{wellnessStats.mindfulness_sessions || 0}</div>
               <div className="text-sm text-gray-600">Sessions</div>
             </div>
             <div className="text-center">
