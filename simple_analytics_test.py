@@ -120,6 +120,17 @@ def join_class(student_token, join_code):
     
     if response.status_code == 200:
         print("Successfully joined class")
+        
+        # Verify the student joined the class by getting the student's classes
+        verify_url = f"{API_URL}/student/classes"
+        verify_response = requests.get(verify_url, headers=headers)
+        if verify_response.status_code == 200:
+            classes = verify_response.json()
+            print(f"Student has joined {len(classes)} classes")
+            if classes:
+                class_ids = [cls.get("class_id") for cls in classes]
+                print(f"Student's classes: {class_ids}")
+        
         return True
     else:
         print(f"Failed to join class: {response.text}")
