@@ -905,6 +905,39 @@ function App() {
     subject: ''
   });
 
+  const loadTestResults = async (classId = '', studentId = '', subject = '') => {
+    setTestResultsLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (classId) params.append('class_id', classId);
+      if (studentId) params.append('student_id', studentId);
+      if (subject) params.append('subject', subject);
+      
+      const response = await axios.get(`${API_BASE}/api/teacher/analytics/test-results?${params}`);
+      setTestResults(response.data.test_results || []);
+    } catch (error) {
+      console.error('Error loading test results:', error);
+      setTestResults([]);
+    } finally {
+      setTestResultsLoading(false);
+    }
+  };
+
+  const loadClassPerformance = async (classId) => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/api/teacher/analytics/class-performance/${classId}`);
+      setClassPerformance(response.data);
+    } catch (error) {
+      console.error('Error loading class performance:', error);
+      setClassPerformance(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadOverviewAnalytics = async () => {
+
   // Check for existing authentication on app load
   useEffect(() => {
     const token = localStorage.getItem('access_token');
