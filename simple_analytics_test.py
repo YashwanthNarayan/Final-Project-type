@@ -90,6 +90,19 @@ def create_class(teacher_token):
         class_id = data.get("class_id")
         join_code = data.get("join_code")
         print(f"Created class with ID: {class_id} and join code: {join_code}")
+        
+        # Verify the class was created by getting the teacher's classes
+        verify_url = f"{API_URL}/teacher/classes"
+        verify_response = requests.get(verify_url, headers=headers)
+        if verify_response.status_code == 200:
+            classes = verify_response.json()
+            print(f"Teacher has {len(classes)} classes")
+            class_found = any(cls.get("class_id") == class_id for cls in classes)
+            if class_found:
+                print(f"Verified class {class_id} exists in teacher's classes")
+            else:
+                print(f"Warning: Class {class_id} not found in teacher's classes")
+        
         return class_id, join_code
     else:
         print(f"Failed to create class: {response.text}")
