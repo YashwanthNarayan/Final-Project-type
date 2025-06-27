@@ -937,6 +937,29 @@ function App() {
   };
 
   const loadOverviewAnalytics = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.get(`${API_BASE}/api/teacher/analytics/overview`);
+      setAnalyticsData(response.data);
+    } catch (error) {
+      console.error('Error loading overview analytics:', error);
+      // Set default structure to prevent crashes
+      setAnalyticsData({
+        overview_metrics: {
+          total_classes: 0,
+          total_students: 0,
+          total_messages: 0,
+          total_tests: 0,
+          average_score: 0
+        },
+        class_summary: [],
+        subject_distribution: [],
+        weekly_activity_trend: []
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Check for existing authentication on app load
   useEffect(() => {
