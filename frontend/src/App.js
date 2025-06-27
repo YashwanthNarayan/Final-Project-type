@@ -896,6 +896,8 @@ function App() {
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [testResults, setTestResults] = useState([]);
   const [classPerformance, setClassPerformance] = useState(null);
   const [testResultsLoading, setTestResultsLoading] = useState(false);
