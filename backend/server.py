@@ -2382,7 +2382,7 @@ async def get_class_performance_analysis(class_id: str, token_data: dict = Depen
         if token_data.get('user_type') != 'teacher':
             raise HTTPException(status_code=403, detail="Access denied. Teacher role required.")
         
-        class_doc = await db.classes.find_one({"class_id": class_id, "teacher_id": teacher_id})
+        class_doc = await db.classrooms.find_one({"class_id": class_id, "teacher_id": teacher_id})
         if not class_doc:
             raise HTTPException(status_code=403, detail="Access denied to this class")
         
