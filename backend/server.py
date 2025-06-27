@@ -2171,8 +2171,8 @@ async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token
         teacher_classes = await teacher_classes_cursor.to_list(100)
         class_ids = [cls['class_id'] for cls in teacher_classes]
         
-        # Get all students in teacher's classes
-        student_profiles_cursor = db.student_profiles.find({"class_id": {"$in": class_ids}})
+        # Get all students in teacher's classes using joined_classes array
+        student_profiles_cursor = db.student_profiles.find({"joined_classes": {"$in": class_ids}})
         student_profiles = await student_profiles_cursor.to_list(1000)
         student_ids = [profile['user_id'] for profile in student_profiles]
         
