@@ -2284,7 +2284,7 @@ async def get_detailed_test_results(
             query["student_id"] = {"$in": class_student_ids}
         else:
             # Get all students in teacher's classes
-            teacher_classes = await db.classes.find({"teacher_id": teacher_id}).to_list(100)
+            teacher_classes = await db.classrooms.find({"teacher_id": teacher_id}).to_list(100)
             class_ids = [cls['class_id'] for cls in teacher_classes]
             student_profiles = await db.student_profiles.find({"joined_classes": {"$in": class_ids}}).to_list(1000)
             student_ids = [p['user_id'] for p in student_profiles]
