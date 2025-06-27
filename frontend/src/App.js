@@ -896,6 +896,14 @@ function App() {
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
+  const [testResults, setTestResults] = useState([]);
+  const [classPerformance, setClassPerformance] = useState(null);
+  const [testResultsLoading, setTestResultsLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    class_id: '',
+    student_id: '',
+    subject: ''
+  });
 
   // Check for existing authentication on app load
   useEffect(() => {
