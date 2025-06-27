@@ -2166,8 +2166,8 @@ async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token
         if token_data.get('user_type') != 'teacher':
             raise HTTPException(status_code=403, detail="Access denied. Teacher role required.")
         
-        # Get teacher's classes
-        teacher_classes_cursor = db.classes.find({"teacher_id": teacher_id})
+        # Get teacher's classes (using correct collection name)
+        teacher_classes_cursor = db.classrooms.find({"teacher_id": teacher_id})
         teacher_classes = await teacher_classes_cursor.to_list(100)
         class_ids = [cls['class_id'] for cls in teacher_classes]
         
