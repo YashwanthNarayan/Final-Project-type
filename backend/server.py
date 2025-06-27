@@ -2277,15 +2277,15 @@ async def get_detailed_test_results(
             if not class_doc:
                 raise HTTPException(status_code=403, detail="Access denied to this class")
             
-            # Get students in this class
-            student_profiles = await db.student_profiles.find({"class_id": class_id}).to_list(1000)
+            # Get students in this class using joined_classes array
+            student_profiles = await db.student_profiles.find({"joined_classes": class_id}).to_list(1000)
             class_student_ids = [p['user_id'] for p in student_profiles]
             query["student_id"] = {"$in": class_student_ids}
         else:
             # Get all students in teacher's classes
             teacher_classes = await db.classes.find({"teacher_id": teacher_id}).to_list(100)
             class_ids = [cls['class_id'] for cls in teacher_classes]
-            student_profiles = await db.student_profiles.find({"class_id": {"$in": class_ids}}).to_list(1000)
+            student_profiles = await db.student_profiles.find({"joined_classes": {"$in": class_ids}}).to_list(1000)
             student_ids = [p['user_id'] for p in student_profiles]
             query["student_id"] = {"$in": student_ids}
         
