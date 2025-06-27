@@ -164,20 +164,22 @@ backend:
 metadata:
   created_by: "testing_agent"
   version: "1.0"
-  test_sequence: 5
+  test_sequence: 1
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Notes Management APIs"
-  stuck_tasks: []
+    - "Detailed Test Results API"
+    - "Class Performance Analysis API"
+    - "Enhanced Overview Analytics"
+  stuck_tasks:
+    - "Detailed Test Results API"
+    - "Class Performance Analysis API"
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "I've implemented a complete Notes Generation system in the backend with the following features: 1) Notes generation API for creating comprehensive, summary, and quick reference notes for different subjects, 2) Notes management APIs for retrieving, filtering, and searching notes, 3) Actions for favoriting and deleting notes, 4) Database operations for storing notes, 5) Error handling for invalid inputs, and 6) A NotesGeneratorBot class that generates high-quality, subject-specific notes. Please test all these components thoroughly."
+    message: "I've implemented enhanced Teacher Analytics API endpoints including detailed test results with question-level analysis, class performance analysis, and improved overview analytics. Please test these endpoints thoroughly, especially the filtering options and data quality."
   - agent: "testing"
-    message: "I've completed testing of the Notes Generation system. The notes generation functionality works well - students can generate notes for different subjects and topics, and the content is high-quality and relevant. The DELETE operation for notes also works correctly. However, there's an issue with the notes management APIs (/api/notes, /api/notes/{note_id}) which are returning 500 Internal Server Error. The error logs show a problem with MongoDB ObjectId serialization: 'ObjectId' object is not iterable. This is likely because the notes are stored with MongoDB's native ObjectId but not properly converted to string IDs in the API response. This issue needs to be fixed for the notes management functionality to work properly. Also, the API currently accepts empty topics, which might not be intended behavior and could be improved with validation."
-  - agent: "testing"
-    message: "I've completed re-testing of the Notes Management system after the ObjectId serialization fix. All tests are now passing successfully. The notes management APIs (/api/notes, /api/notes/{note_id}) are working correctly and returning proper JSON responses. The ObjectId serialization issue has been fixed, and all MongoDB ObjectIds are properly converted to strings in the API responses. I've verified the complete notes workflow including generating notes, retrieving the notes list, viewing individual note details, favoriting/unfavoriting notes, and deleting notes. All these operations work as expected. The only minor issue is that the API still accepts empty topics, which might not be intended behavior, but this doesn't affect the core functionality. Data integrity is maintained, and student isolation is working correctly (students only see their own notes). The system is now fully functional."
+    message: "I've tested the Teacher Analytics API endpoints and found a critical issue affecting multiple endpoints. The problem is a mismatch in data structure - the analytics endpoints are looking for students with a class_id field in their profile, but when students join a class, the class ID is added to a joined_classes array instead. This causes the endpoints to not find any students in the class, resulting in 403 Access Denied errors for the detailed test results and class performance endpoints. The overview endpoint works in terms of returning a 200 response, but it shows empty data due to the same issue. The authorization checks are working correctly - students are properly denied access to teacher endpoints, and teachers can't access other teachers' classes. To fix this issue, the analytics endpoints need to be updated to look for class IDs in the joined_classes array instead of a class_id field."
