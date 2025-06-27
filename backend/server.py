@@ -2273,8 +2273,8 @@ async def get_detailed_test_results(
         
         # Filter by class if specified
         if class_id:
-            # Verify teacher owns this class
-            class_doc = await db.classes.find_one({"class_id": class_id, "teacher_id": teacher_id})
+            # Verify teacher owns this class (using correct collection)
+            class_doc = await db.classrooms.find_one({"class_id": class_id, "teacher_id": teacher_id})
             if not class_doc:
                 raise HTTPException(status_code=403, detail="Access denied to this class")
             
