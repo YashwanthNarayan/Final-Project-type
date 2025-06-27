@@ -2205,7 +2205,8 @@ async def get_teacher_analytics_overview(token_data: dict = Depends(verify_token
         # Class summary with performance metrics
         class_summary = []
         for class_data in teacher_classes:
-            class_students = [p for p in student_profiles if p.get('class_id') == class_data['class_id']]
+            # Get students in this class using joined_classes array
+            class_students = await db.student_profiles.find({"joined_classes": class_data['class_id']}).to_list(1000)
             class_student_ids = [p['user_id'] for p in class_students]
             
             if class_student_ids:
