@@ -1060,6 +1060,193 @@ function App() {
   );
 };
 
+// Teacher Dashboard Component
+const TeacherDashboard = ({ teacher, onNavigate }) => {
+  const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null);
+
+  useEffect(() => {
+    loadTeacherDashboard();
+  }, []);
+
+  const loadTeacherDashboard = async () => {
+    try {
+      const response = await axios.get(`${API_BASE}/api/teacher/analytics/overview`);
+      setDashboardData(response.data);
+    } catch (error) {
+      console.error('Error loading teacher dashboard:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 p-6">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">👨‍🏫 Teacher Dashboard</h1>
+            <p className="text-gray-600">Welcome back, {teacher?.name || 'Teacher'}!</p>
+          </div>
+          <button
+            onClick={() => onNavigate('auth')}
+            className="text-gray-600 hover:text-gray-800 px-4 py-2 rounded-lg border border-gray-300 hover:border-gray-400 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">🏫</div>
+              <div>
+                <div className="text-2xl font-bold text-blue-600">{dashboardData?.overview_metrics?.total_classes || 0}</div>
+                <div className="text-sm text-gray-600">Classes</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">👥</div>
+              <div>
+                <div className="text-2xl font-bold text-green-600">{dashboardData?.overview_metrics?.total_students || 0}</div>
+                <div className="text-sm text-gray-600">Students</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">📝</div>
+              <div>
+                <div className="text-2xl font-bold text-purple-600">{dashboardData?.overview_metrics?.total_tests || 0}</div>
+                <div className="text-sm text-gray-600">Tests Taken</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm p-6">
+            <div className="flex items-center">
+              <div className="text-3xl mr-4">📊</div>
+              <div>
+                <div className="text-2xl font-bold text-orange-600">{(dashboardData?.overview_metrics?.average_score || 0).toFixed(1)}%</div>
+                <div className="text-sm text-gray-600">Avg Score</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Main Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <button
+            onClick={() => onNavigate('teacher-analytics')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-left group"
+          >
+            <div className="flex items-center mb-4">
+              <div className="text-4xl mr-4">📊</div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+                  Detailed Analytics
+                </h3>
+                <p className="text-sm text-gray-600">View comprehensive test results</p>
+              </div>
+            </div>
+            <div className="text-indigo-600 group-hover:text-indigo-700 transition-colors">
+              View detailed student performance, question analysis, and insights →
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate('create-class')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-left group"
+          >
+            <div className="flex items-center mb-4">
+              <div className="text-4xl mr-4">➕</div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-green-600 transition-colors">
+                  Create Class
+                </h3>
+                <p className="text-sm text-gray-600">Set up a new class</p>
+              </div>
+            </div>
+            <div className="text-green-600 group-hover:text-green-700 transition-colors">
+              Create and manage your classes →
+            </div>
+          </button>
+
+          <button
+            onClick={() => onNavigate('manage-classes')}
+            className="bg-white rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow text-left group"
+          >
+            <div className="flex items-center mb-4">
+              <div className="text-4xl mr-4">🏫</div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors">
+                  Manage Classes
+                </h3>
+                <p className="text-sm text-gray-600">View and manage existing classes</p>
+              </div>
+            </div>
+            <div className="text-blue-600 group-hover:text-blue-700 transition-colors">
+              Manage students and class settings →
+            </div>
+          </button>
+        </div>
+
+        {/* Recent Classes */}
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">Your Classes</h2>
+          {dashboardData?.class_summary?.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <div className="text-4xl mb-2">🏫</div>
+              <p>No classes created yet.</p>
+              <button
+                onClick={() => onNavigate('create-class')}
+                className="mt-4 bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Create Your First Class
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {dashboardData?.class_summary?.map((cls) => (
+                <div key={cls.class_info.class_id} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-gray-900">{cls.class_info.class_name}</h3>
+                    <span className="text-sm text-gray-500">{cls.student_count} students</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                    <div>
+                      <span className="font-medium">Avg Score:</span> {(cls.average_score || 0).toFixed(1)}%
+                    </div>
+                    <div>
+                      <span className="font-medium">Tests:</span> {cls.total_tests || 0}
+                    </div>
+                  </div>
+                  <div className="mt-3 text-xs text-gray-500">
+                    Subject: {cls.class_info.subject} • Grade: {cls.class_info.grade_level}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Teacher Analytics Dashboard Component
 const TeacherAnalyticsDashboard = ({ teacher, onNavigate }) => {
   const [selectedView, setSelectedView] = useState('overview'); // overview, test-results, class-performance
